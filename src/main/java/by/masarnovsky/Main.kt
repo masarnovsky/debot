@@ -38,16 +38,16 @@ fun main(args: Array<String>) {
         val chatId = callback.message?.chat?.id!!
 
         println(data)
-        if (data.startsWith("debetor_")) {
-            val name = data.replace("debetor_", "")
+        if (data.startsWith("debtor_")) {
+            val name = data.replace("debtor_", "")
             println(name)
 
         } else {
             when (data) {
                 "callback_add" -> addDebtNote(chatId, bot)
-                "callback_new" -> addNewDebetor(chatId, bot)
-                "callback_exists" -> getListOfDebetors(chatId, bot)
-                else -> returnListOfDebetorsForChat(chatId, bot)
+                "callback_new" -> addNewDebtor(chatId, bot)
+                "callback_exists" -> getListOfDebtors(chatId, bot)
+                else -> returnListOfDebtorsForChat(chatId, bot)
             }
         }
     }
@@ -67,7 +67,7 @@ private fun mainMenu(bot: Bot, msg: Message) {
     )
 }
 
-fun returnListOfDebetorsForChat(chatId: Long, bot: Bot) {
+fun returnListOfDebtorsForChat(chatId: Long, bot: Bot) {
     var result = ""
     getNames().forEach { (key, value) -> result += "$key $value BYN\n" }
     bot.sendMessage(chatId, result)
@@ -80,14 +80,14 @@ fun addDebtNote(chatId: Long, bot: Bot) {
     bot.sendMessage(chatId, "Добавь нового должника или выбери уже существующего", markup = keyboard)
 }
 
-fun addNewDebetor(chatId: Long, bot: Bot) {
+fun addNewDebtor(chatId: Long, bot: Bot) {
 
 }
 
-fun getListOfDebetors(chatId: Long, bot: Bot) {
+fun getListOfDebtors(chatId: Long, bot: Bot) {
     val names = mutableListOf<InlineKeyboardButton>()
     getNames().forEach { (key, _) ->
-        names.add(InlineKeyboardButton(text = key, callback_data = "debetor_$key"))
+        names.add(InlineKeyboardButton(text = key, callback_data = "debtor_$key"))
     }
     val keyboard = InlineKeyboardMarkup(listOf(names))
     bot.sendMessage(chatId, "Выбери должника", markup = keyboard)
