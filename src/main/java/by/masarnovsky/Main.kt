@@ -10,6 +10,7 @@ import java.util.*
 var token = ""
 var username = ""
 var myId = ""
+const val PATTERN = "(?<name>[\\w\\s]*) (?<sum>[0-9.,]+) (?<comment>[\\w\\s-!?)(.,]*)"
 
 fun loadProperties() {
     val properties = Properties()
@@ -25,8 +26,12 @@ fun main(args: Array<String>) {
     loadProperties()
     val bot = Bot.createPolling(username, token)
 
-    bot.onMessage { msg ->
-        mainMenu(bot, msg)
+    bot.onMessage { message ->
+        if (message.text != null && isStringMatchDebtPattern(message.text!!)) {
+            addNewDebtor(bot, message)
+        } else {
+            mainMenu(bot, message)
+        }
     }
 
     bot.onCommand("/start") { msg, _ ->
@@ -45,7 +50,7 @@ fun main(args: Array<String>) {
         } else {
             when (data) {
                 "callback_add" -> addDebtNote(chatId, bot)
-                "callback_new" -> addNewDebtor(chatId, bot)
+                "callback_new" -> addNewDebtorMessage(chatId, bot)
                 "callback_exists" -> getListOfDebtors(chatId, bot)
                 else -> returnListOfDebtorsForChat(chatId, bot)
             }
@@ -54,6 +59,17 @@ fun main(args: Array<String>) {
 
     bot.start()
 
+}
+
+private fun addNewDebtor(bot: Bot, message: Message) {
+    val match = PATTERN.toRegex().find(message.text!!)!!
+    val (name, sum, comment) = match.destructured
+    updateDebtor(match.destructured)
+    bot.sendMessage(message.chat.id, "Теперь $name должен тебе $sum BYN за $comment")
+}
+
+fun updateDebtor(destructured: MatchResult.Destructured) {
+    TODO("Not yet implemented")
 }
 
 private fun mainMenu(bot: Bot, msg: Message) {
@@ -80,8 +96,8 @@ fun addDebtNote(chatId: Long, bot: Bot) {
     bot.sendMessage(chatId, "Добавь нового должника или выбери уже существующего", markup = keyboard)
 }
 
-fun addNewDebtor(chatId: Long, bot: Bot) {
-
+fun addNewDebtorMessage(chatId: Long, bot: Bot) {
+    bot.sendMessage(chatId, "Отправь имя, сумму и комментарий к долгу в формате {имя} {сумма} {комментарий}")
 }
 
 fun getListOfDebtors(chatId: Long, bot: Bot) {
@@ -96,4 +112,9 @@ fun getListOfDebtors(chatId: Long, bot: Bot) {
 
 fun getNames(): Map<String, Double> {
     return mutableMapOf("stas" to 14.08, "max" to 6.66, "nina" to 14.88)
+}
+
+fun isStringMatchDebtPattern(str: String): Boolean {
+    val pattern = PATTERN.toRegex()
+    return pattern matches str
 }
