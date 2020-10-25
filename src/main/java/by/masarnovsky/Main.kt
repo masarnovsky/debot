@@ -4,13 +4,20 @@ import com.elbekD.bot.Bot
 import com.elbekD.bot.types.InlineKeyboardButton
 import com.elbekD.bot.types.InlineKeyboardMarkup
 import com.elbekD.bot.types.Message
+import com.mongodb.MongoClient
+import com.mongodb.MongoClientURI
+import com.mongodb.client.MongoDatabase
+import com.mongodb.client.model.Filters.eq
+import org.bson.Document
 import java.io.FileInputStream
 import java.util.*
+
 
 var token = ""
 var username = ""
 var myId = ""
-const val PATTERN = "(?<name>[\\w\\s]*) (?<sum>[0-9.,]+) (?<comment>[\\w\\s-!?)(.,]*)"
+const val PATTERN_NEW_DEBTOR = "(?<name>[\\w\\s]*) (?<sum>[0-9.,]+) (?<comment>[\\w\\s-!?)(.,]*)"
+const val PATTERN_REPAY = "(?<name>[\\w\\s]*) (?<sum>-[0-9.,]+)"
 
 fun loadProperties() {
     val properties = Properties()
@@ -29,6 +36,8 @@ fun main(args: Array<String>) {
     bot.onMessage { message ->
         if (message.text != null && isStringMatchDebtPattern(message.text!!)) {
             addNewDebtor(bot, message)
+        } else if (message.text != null && isStringMatchRepayPattern(message.text!!)) {
+            repay(bot, message)
         } else {
             mainMenu(bot, message)
         }
@@ -46,7 +55,7 @@ fun main(args: Array<String>) {
         if (data.startsWith("debtor_")) {
             val name = data.replace("debtor_", "")
             println(name)
-
+            // TODO ("Подумать, нужен ли вообще этот метод")
         } else {
             when (data) {
                 "callback_add" -> addDebtNote(chatId, bot)
@@ -62,14 +71,47 @@ fun main(args: Array<String>) {
 }
 
 private fun addNewDebtor(bot: Bot, message: Message) {
-    val match = PATTERN.toRegex().find(message.text!!)!!
+    val match = PATTERN_NEW_DEBTOR.toRegex().find(message.text!!)!!
     val (name, sum, comment) = match.destructured
-    updateDebtor(match.destructured)
-    bot.sendMessage(message.chat.id, "Теперь $name должен тебе $sum BYN за $comment")
+    val debtor = updateDebtor(name, sum, comment, message.chat.id)!!
+    bot.sendMessage(
+        message.chat.id,
+        "Теперь ${debtor["name"]} должен тебе ${debtor["sum"]} BYN за ${debtor["comments"]}"
+    )
 }
 
-fun updateDebtor(destructured: MatchResult.Destructured) {
-    TODO("Not yet implemented")
+fun repay(bot: Bot, message: Message) {
+    val match = PATTERN_REPAY.toRegex().find(message.text!!)!!
+    val (name, sum) = match.destructured
+    val debtor = updateDebtor(name, sum, "Возврат суммы", message.chat.id)!!
+    bot.sendMessage(
+        message.chat.id,
+        "Теперь ${debtor["name"]} должен тебе ${debtor["sum"]} BYN за ${debtor["comments"]}"
+    )
+}
+
+fun updateDebtor(name: String, sum: String, comment: String, chatId: Long): Document? {
+    val connectionString = MongoClientURI("mongodb://localhost:27017")
+    val mongoClient = MongoClient(connectionString)
+    val database: MongoDatabase = mongoClient.getDatabase("debot")
+    val collection = database.getCollection("debts")
+    var debtor = collection.find(Document("name", name).append("chatId", chatId)).first()
+    var newSum = sum.toDouble()
+
+    if (debtor == null) {
+        debtor = Document("name", name).append("sum", newSum).append("comments", mutableListOf(comment))
+            .append("chatId", chatId)
+        collection.insertOne(debtor)
+    } else {
+        newSum = debtor.getDouble("sum") + sum.toDouble()
+        debtor["sum"] = newSum
+        val comments: MutableList<String> = debtor["comments"] as MutableList<String>
+        comments.add(comment)
+        collection.updateOne(eq("name", name), Document("\$set", debtor))
+    }
+
+    mongoClient.close()
+    return debtor
 }
 
 private fun mainMenu(bot: Bot, msg: Message) {
@@ -115,6 +157,11 @@ fun getNames(): Map<String, Double> {
 }
 
 fun isStringMatchDebtPattern(str: String): Boolean {
-    val pattern = PATTERN.toRegex()
+    val pattern = PATTERN_NEW_DEBTOR.toRegex()
+    return pattern matches str
+}
+
+fun isStringMatchRepayPattern(str: String): Boolean {
+    val pattern = PATTERN_REPAY.toRegex()
     return pattern matches str
 }
