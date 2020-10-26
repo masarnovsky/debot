@@ -16,8 +16,8 @@ import java.util.*
 var token = ""
 var username = ""
 var myId = ""
-const val PATTERN_NEW_DEBTOR = "(?<name>[\\w\\s]*) (?<sum>[0-9.,]+) (?<comment>[\\w\\s-!?)(.,]*)"
-const val PATTERN_REPAY = "(?<name>[\\w\\s]*) (?<sum>-[0-9.,]+)"
+const val PATTERN_NEW_DEBTOR = "(?<name>[\\p{L}\\s]*) (?<sum>[0-9.,]+) (?<comment>[\\p{L}\\s-!?)(.,]*)"
+const val PATTERN_REPAY = "(?<name>[\\p{L}\\s]*) (?<sum>-[0-9.,]+)"
 
 fun loadProperties() {
     val properties = Properties()
@@ -76,7 +76,7 @@ private fun addNewDebtor(bot: Bot, message: Message) {
     val debtor = updateDebtor(name, sum, comment, message.chat.id)!!
     bot.sendMessage(
         message.chat.id,
-        "Теперь ${debtor["name"]} должен тебе ${debtor["sum"]} BYN за ${debtor["comments"]}"
+        "Теперь ${debtor["name"]} торчит тебе ${debtor["sum"]} BYN за ${debtor["comments"]}"
     )
 }
 
