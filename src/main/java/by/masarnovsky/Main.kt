@@ -17,7 +17,6 @@ import java.util.*
 
 var token = ""
 var username = ""
-var myId = ""
 const val PATTERN_NEW_DEBTOR = "(?<name>[\\p{L}\\s]*) (?<sum>[0-9.,]+) (?<comment>[\\p{L}\\s-!?)(.,]*)"
 const val PATTERN_REPAY = "(?<name>[\\p{L}\\s]*) (?<sum>-[0-9.,]+)"
 
@@ -28,7 +27,6 @@ fun loadProperties() {
     properties.load(inputStream)
     token = properties.getProperty("bot.token")
     username = properties.getProperty("bot.username")
-    myId = properties.getProperty("myid")
 }
 
 fun main() {

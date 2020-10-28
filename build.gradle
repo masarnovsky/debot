@@ -14,5 +14,8 @@ repositories {
 dependencies {
     implementation "org.jetbrains.kotlin:kotlin-stdlib"
     implementation "com.github.elbekD:kt-telegram-bot:1.3.5"
-    compile group: 'org.mongodb', name: 'mongo-java-driver', version: '3.12.7'
+    implementation "org.mongodb:mongo-java-driver:3.12.7"
 }
+
+task stage(dependsOn: ['build', 'clean'])
+build.mustRunAfter clean
