@@ -30,32 +30,35 @@ fun loadProperties() {
 }
 
 fun main() {
-    loadProperties()
-    val bot = Bot.createPolling(username, token)
+//    loadProperties()
+    val bot = Bot.createPolling("ddebtbot", "1288647527:AAEb-YaZ2oR5JMTWjaYmS8Mcczr_dO7X3Hg")
 
-    bot.onMessage { message ->
-        if (message.text != null && isStringMatchDebtPattern(message.text!!)) {
-            addNewDebtor(bot, message)
-        } else if (message.text != null && isStringMatchRepayPattern(message.text!!)) {
-            repay(bot, message)
-        } else {
-            mainMenu(bot, message)
-        }
-    }
-
-    bot.onCommand("/start") { msg, _ ->
+    bot.onMessage { msg ->
         mainMenu(bot, msg)
     }
-
-    bot.onCallbackQuery { callback ->
-        val data = callback.data!!
-        val chatId = callback.message?.chat?.id!!
-
-        when (data) {
-            "callback_list" -> returnListOfDebtorsForChat(chatId, bot)
-            else -> returnListOfDebtorsForChat(chatId, bot)
-        }
-    }
+//    bot.onMessage { message ->
+//        if (message.text != null && isStringMatchDebtPattern(message.text!!)) {
+//            addNewDebtor(bot, message)
+//        } else if (message.text != null && isStringMatchRepayPattern(message.text!!)) {
+//            repay(bot, message)
+//        } else {
+//            mainMenu(bot, message)
+//        }
+//    }
+//
+//    bot.onCommand("/start") { msg, _ ->
+//        mainMenu(bot, msg)
+//    }
+//
+//    bot.onCallbackQuery { callback ->
+//        val data = callback.data!!
+//        val chatId = callback.message?.chat?.id!!
+//
+//        when (data) {
+//            "callback_list" -> returnListOfDebtorsForChat(chatId, bot)
+//            else -> returnListOfDebtorsForChat(chatId, bot)
+//        }
+//    }
 
     bot.start()
 
