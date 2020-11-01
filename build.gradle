@@ -23,6 +23,7 @@ jar {
                 'Main-Class': 'by.masarnovsky.MainKt'
         )
     }
+    from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
 }
 
 task stage(dependsOn: ['build', 'clean'])
