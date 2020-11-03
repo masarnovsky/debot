@@ -11,54 +11,49 @@ import com.mongodb.client.MongoDatabase
 import com.mongodb.client.model.Filters.eq
 import com.mongodb.client.model.Filters.gt
 import org.bson.Document
-import java.io.FileInputStream
-import java.util.*
-
 
 var token = ""
 var username = ""
+var databaseUrl = ""
 const val PATTERN_NEW_DEBTOR = "(?<name>[\\p{L}\\s]*) (?<sum>[0-9.,]+) (?<comment>[\\p{L}\\s-!?)(.,]*)"
 const val PATTERN_REPAY = "(?<name>[\\p{L}\\s]*) (?<sum>-[0-9.,]+)"
 
 fun loadProperties() {
-    val properties = Properties()
-    val propertiesFile = System.getProperty("user.dir") + "\\values.properties"
-    val inputStream = FileInputStream(propertiesFile)
-    properties.load(inputStream)
-    token = properties.getProperty("bot.token")
-    username = properties.getProperty("bot.username")
+    token = System.getenv()["BOT_TOKEN"].toString()
+    username = System.getenv()["BOT_USERNAME"].toString()
+    databaseUrl = System.getenv()["DATABASE_URL"].toString()
 }
 
 fun main() {
-//    loadProperties()
-    val bot = Bot.createPolling("ddebtbot", "1288647527:AAEb-YaZ2oR5JMTWjaYmS8Mcczr_dO7X3Hg")
+    loadProperties()
+    val bot = Bot.createPolling(username, token)
 
     bot.onMessage { msg ->
         mainMenu(bot, msg)
     }
-//    bot.onMessage { message ->
-//        if (message.text != null && isStringMatchDebtPattern(message.text!!)) {
-//            addNewDebtor(bot, message)
-//        } else if (message.text != null && isStringMatchRepayPattern(message.text!!)) {
-//            repay(bot, message)
-//        } else {
-//            mainMenu(bot, message)
-//        }
-//    }
-//
-//    bot.onCommand("/start") { msg, _ ->
-//        mainMenu(bot, msg)
-//    }
-//
-//    bot.onCallbackQuery { callback ->
-//        val data = callback.data!!
-//        val chatId = callback.message?.chat?.id!!
-//
-//        when (data) {
-//            "callback_list" -> returnListOfDebtorsForChat(chatId, bot)
-//            else -> returnListOfDebtorsForChat(chatId, bot)
-//        }
-//    }
+    bot.onMessage { message ->
+        if (message.text != null && isStringMatchDebtPattern(message.text!!)) {
+            addNewDebtor(bot, message)
+        } else if (message.text != null && isStringMatchRepayPattern(message.text!!)) {
+            repay(bot, message)
+        } else {
+            mainMenu(bot, message)
+        }
+    }
+
+    bot.onCommand("/start") { msg, _ ->
+        mainMenu(bot, msg)
+    }
+
+    bot.onCallbackQuery { callback ->
+        val data = callback.data!!
+        val chatId = callback.message?.chat?.id!!
+
+        when (data) {
+            "callback_list" -> returnListOfDebtorsForChat(chatId, bot)
+            else -> returnListOfDebtorsForChat(chatId, bot)
+        }
+    }
 
     bot.start()
 
@@ -86,7 +81,7 @@ fun repay(bot: Bot, message: Message) {
 
 fun updateDebtor(name: String, sum: String, comment: String, chatId: Long): Document? {
     val lowercaseName = name.toLowerCase()
-    val connectionString = MongoClientURI("mongodb://localhost:27017")
+    val connectionString = MongoClientURI(databaseUrl)
     val mongoClient = MongoClient(connectionString)
     val database: MongoDatabase = mongoClient.getDatabase("debot")
     val collection = database.getCollection("debts")
@@ -127,7 +122,7 @@ fun returnListOfDebtorsForChat(chatId: Long, bot: Bot) {
 }
 
 fun getDebtors(): FindIterable<Document> {
-    val connectionString = MongoClientURI("mongodb://localhost:27017")
+    val connectionString = MongoClientURI(databaseUrl)
     val mongoClient = MongoClient(connectionString)
     val database: MongoDatabase = mongoClient.getDatabase("debot")
     val collection = database.getCollection("debts")
