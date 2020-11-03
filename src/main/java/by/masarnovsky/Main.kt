@@ -11,6 +11,8 @@ import com.mongodb.client.MongoDatabase
 import com.mongodb.client.model.Filters.eq
 import com.mongodb.client.model.Filters.gt
 import org.bson.Document
+import java.io.FileInputStream
+import java.util.*
 
 var token = ""
 var username = ""
@@ -19,18 +21,25 @@ const val PATTERN_NEW_DEBTOR = "(?<name>[\\p{L}\\s]*) (?<sum>[0-9.,]+) (?<commen
 const val PATTERN_REPAY = "(?<name>[\\p{L}\\s]*) (?<sum>-[0-9.,]+)"
 
 fun loadProperties() {
-    token = System.getenv()["BOT_TOKEN"].toString()
-    username = System.getenv()["BOT_USERNAME"].toString()
-    databaseUrl = System.getenv()["DATABASE_URL"].toString()
+    if (System.getenv()["IS_PROD"].toString() != "null") {
+        token = System.getenv()["BOT_TOKEN"].toString()
+        username = System.getenv()["BOT_USERNAME"].toString()
+        databaseUrl = System.getenv()["DATABASE_URL"].toString()
+    } else {
+        val properties = Properties()
+        val propertiesFile = System.getProperty("user.dir") + "\\test_env.properties"
+        val inputStream = FileInputStream(propertiesFile)
+        properties.load(inputStream)
+        token = properties.getProperty("BOT_TOKEN")
+        username = properties.getProperty("BOT_USERNAME")
+        databaseUrl = properties.getProperty("DATABASE_URL")
+    }
 }
 
 fun main() {
     loadProperties()
     val bot = Bot.createPolling(username, token)
 
-    bot.onMessage { msg ->
-        mainMenu(bot, msg)
-    }
     bot.onMessage { message ->
         if (message.text != null && isStringMatchDebtPattern(message.text!!)) {
             addNewDebtor(bot, message)
@@ -56,7 +65,6 @@ fun main() {
     }
 
     bot.start()
-
 }
 
 private fun addNewDebtor(bot: Bot, message: Message) {
@@ -109,8 +117,9 @@ private fun mainMenu(bot: Bot, msg: Message) {
     val keyboard = InlineKeyboardMarkup(listOf(listOf(list)))
     bot.sendMessage(
         msg.chat.id,
-        "Добавляй должника в таком формате: {имя} {сумма} {комментарий}, либо {имя} -{сумма} чтобы вычесть сумму долга. Кнопочка чтобы посмотреть всех",
-        markup = keyboard
+        "Добавляй должника в таком формате:<br> <b>{имя} {сумма} {комментарий}</b>,<br> либо <b>{имя} -{сумма}</b> чтобы вычесть сумму долга. Кнопочка чтобы посмотреть всех",
+        markup = keyboard,
+        parseMode = "HTML"
     )
 }
 
