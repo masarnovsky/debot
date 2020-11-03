@@ -117,7 +117,7 @@ private fun mainMenu(bot: Bot, msg: Message) {
     val keyboard = InlineKeyboardMarkup(listOf(listOf(list)))
     bot.sendMessage(
         msg.chat.id,
-        "Добавляй должника в таком формате:<br> <b>{имя} {сумма} {комментарий}</b>,<br> либо <b>{имя} -{сумма}</b> чтобы вычесть сумму долга. Кнопочка чтобы посмотреть всех",
+        "Добавляй должника в таком формате: <b>{имя} {сумма} {комментарий}</b>, либо <b>{имя} -{сумма}</b> чтобы вычесть сумму долга. Кнопочка чтобы посмотреть всех",
         markup = keyboard,
         parseMode = "HTML"
     )
