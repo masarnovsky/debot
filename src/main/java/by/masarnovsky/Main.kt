@@ -12,6 +12,7 @@ import com.mongodb.client.model.Filters.eq
 import com.mongodb.client.model.Filters.gt
 import org.bson.Document
 import java.io.FileInputStream
+import java.time.Instant
 import java.util.*
 
 var token = ""
@@ -21,7 +22,7 @@ const val PATTERN_NEW_DEBTOR = "(?<name>[\\p{L}\\s]*) (?<sum>[0-9.,]+) (?<commen
 const val PATTERN_REPAY = "(?<name>[\\p{L}\\s]*) (?<sum>-[0-9.,]+)"
 
 fun loadProperties() {
-    if (System.getenv()["IS_PROD"].toString() != "null") {
+    if (System.getenv()["IS_PROD"] != null) {
         token = System.getenv()["BOT_TOKEN"].toString()
         username = System.getenv()["BOT_USERNAME"].toString()
         databaseUrl = System.getenv()["DATABASE_URL"].toString()
@@ -73,7 +74,7 @@ private fun addNewDebtor(bot: Bot, message: Message) {
     val debtor = updateDebtor(name, sum, comment, message.chat.id)!!
     bot.sendMessage(
         message.chat.id,
-        "Теперь ${debtor["name"]} торчит тебе ${debtor["sum"]} BYN за ${debtor["comments"]}"
+        "Теперь ${debtor["name"]} торчит тебе ${debtor["totalAmount"]} BYN"
     )
 }
 
@@ -83,7 +84,7 @@ fun repay(bot: Bot, message: Message) {
     val debtor = updateDebtor(name, sum, "Возврат суммы", message.chat.id)!!
     bot.sendMessage(
         message.chat.id,
-        "${debtor["name"]} вернул(а) $sum BYN и теперь торчит ${debtor["sum"]} BYN"
+        "${debtor["name"]} вернул(а) $sum BYN и теперь торчит ${debtor["totalAmount"]} BYN"
     )
 }
 
@@ -94,17 +95,27 @@ fun updateDebtor(name: String, sum: String, comment: String, chatId: Long): Docu
     val database: MongoDatabase = mongoClient.getDatabase("debot")
     val collection = database.getCollection("debts")
     var debtor = collection.find(Document("name", lowercaseName).append("chatId", chatId)).first()
-    var newSum = sum.toDouble()
+    var totalAmount = sum.toDouble()
+
+    var debt = Document("sum", sum)
+        .append("comment", comment)
+        .append("date", Instant.now())
 
     if (debtor == null) {
-        debtor = Document("name", lowercaseName).append("sum", newSum).append("comments", mutableListOf(comment))
-            .append("chatId", chatId)
-        collection.insertOne(debtor)
+        debt.append("totalAmount", totalAmount)
+
+        debtor = Document("chatId", chatId)
+            .append("name", lowercaseName)
+            .append("totalAmount", totalAmount)
+            .append("debts", mutableListOf(debt))
+        collection.insertOne(debtor!!)
     } else {
-        newSum = debtor.getDouble("sum") + sum.toDouble()
-        debtor["sum"] = newSum
-        val comments: MutableList<String> = debtor["comments"] as MutableList<String>
-        comments.add(comment)
+        totalAmount += debtor.getDouble("totalAmount")
+        debtor["totalAmount"] = totalAmount
+        debt.append("totalAmount", totalAmount)
+
+        val debts: MutableList<Document> = debtor["debts"] as MutableList<Document>
+        debts.add(debt)
         collection.updateOne(eq("name", lowercaseName), Document("\$set", debtor))
     }
 
@@ -117,7 +128,7 @@ private fun mainMenu(bot: Bot, msg: Message) {
     val keyboard = InlineKeyboardMarkup(listOf(listOf(list)))
     bot.sendMessage(
         msg.chat.id,
-        "Добавляй должника в таком формате: <b>{имя} {сумма} {комментарий}</b>, либо <b>{имя} -{сумма}</b> чтобы вычесть сумму долга. Кнопочка чтобы посмотреть всех",
+        "Добавляй должника в таком формате: \n<b>имя 66.6 комментарий</b> \nЧтобы вычесть сумму долга: \n<b>имя -97</b> \nКнопочка чтобы посмотреть всех",
         markup = keyboard,
         parseMode = "HTML"
     )
@@ -125,8 +136,8 @@ private fun mainMenu(bot: Bot, msg: Message) {
 
 fun returnListOfDebtorsForChat(chatId: Long, bot: Bot) {
     var result = ""
-    val names = getDebtors()
-    names.forEach { document -> result += "${document["name"]} ${document["sum"]} BYN\n" }
+    val debtors = getDebtors()
+    debtors.forEach { document -> result += "${document["name"]} ${document["totalAmount"]} BYN\n" }
     bot.sendMessage(chatId, if (result.isNotEmpty()) result else "Пока что никто тебе не должен")
 }
 
@@ -135,7 +146,7 @@ fun getDebtors(): FindIterable<Document> {
     val mongoClient = MongoClient(connectionString)
     val database: MongoDatabase = mongoClient.getDatabase("debot")
     val collection = database.getCollection("debts")
-    return collection.find(gt("sum", 0))
+    return collection.find(gt("totalAmount", 0))
 }
 
 fun isStringMatchDebtPattern(str: String): Boolean {
