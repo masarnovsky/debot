@@ -18,6 +18,7 @@ import java.util.*
 var token = ""
 var username = ""
 var databaseUrl = ""
+var database = ""
 const val PATTERN_NEW_DEBTOR = "(?<name>[\\p{L}\\s]*) (?<sum>[0-9.,]+) (?<comment>[\\p{L}\\s-!?)(.,]*)"
 const val PATTERN_REPAY = "(?<name>[\\p{L}\\s]*) (?<sum>-[0-9.,]+)"
 
@@ -26,6 +27,7 @@ fun loadProperties() {
         token = System.getenv()["BOT_TOKEN"].toString()
         username = System.getenv()["BOT_USERNAME"].toString()
         databaseUrl = System.getenv()["DATABASE_URL"].toString()
+        database = System.getenv()["DATABASE"].toString()
     } else {
         val properties = Properties()
         val propertiesFile = System.getProperty("user.dir") + "\\test_env.properties"
@@ -34,6 +36,7 @@ fun loadProperties() {
         token = properties.getProperty("BOT_TOKEN")
         username = properties.getProperty("BOT_USERNAME")
         databaseUrl = properties.getProperty("DATABASE_URL")
+        database = properties.getProperty("DATABASE")
     }
 }
 
@@ -92,7 +95,7 @@ fun updateDebtor(name: String, sum: String, comment: String, chatId: Long): Docu
     val lowercaseName = name.toLowerCase()
     val connectionString = MongoClientURI(databaseUrl)
     val mongoClient = MongoClient(connectionString)
-    val database: MongoDatabase = mongoClient.getDatabase("debot")
+    val database: MongoDatabase = mongoClient.getDatabase(database)
     val collection = database.getCollection("debts")
     var debtor = collection.find(Document("name", lowercaseName).append("chatId", chatId)).first()
     var totalAmount = sum.toDouble()
@@ -144,7 +147,7 @@ fun returnListOfDebtorsForChat(chatId: Long, bot: Bot) {
 fun getDebtors(): FindIterable<Document> {
     val connectionString = MongoClientURI(databaseUrl)
     val mongoClient = MongoClient(connectionString)
-    val database: MongoDatabase = mongoClient.getDatabase("debot")
+    val database: MongoDatabase = mongoClient.getDatabase(database)
     val collection = database.getCollection("debts")
     return collection.find(gt("totalAmount", 0))
 }
