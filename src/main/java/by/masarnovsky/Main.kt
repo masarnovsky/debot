@@ -22,7 +22,7 @@ const val PATTERN_NEW_DEBTOR = "(?<name>[\\p{L}\\s]*) (?<sum>[0-9.,]+) (?<commen
 const val PATTERN_REPAY = "(?<name>[\\p{L}\\s]*) (?<sum>-[0-9.,]+)"
 
 fun loadProperties() {
-    if (System.getenv()["IS_PROD"] != null) {
+    if (System.getenv()["IS_PROD"].toString() != "null") {
         token = System.getenv()["BOT_TOKEN"].toString()
         username = System.getenv()["BOT_USERNAME"].toString()
         databaseUrl = System.getenv()["DATABASE_URL"].toString()
