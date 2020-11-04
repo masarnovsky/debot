@@ -4,12 +4,12 @@ import com.elbekD.bot.Bot
 import com.elbekD.bot.types.InlineKeyboardButton
 import com.elbekD.bot.types.InlineKeyboardMarkup
 import com.elbekD.bot.types.Message
+import com.mongodb.BasicDBObject
 import com.mongodb.MongoClient
 import com.mongodb.MongoClientURI
 import com.mongodb.client.FindIterable
 import com.mongodb.client.MongoDatabase
 import com.mongodb.client.model.Filters.eq
-import com.mongodb.client.model.Filters.gt
 import org.bson.Document
 import java.io.FileInputStream
 import java.time.Instant
@@ -139,17 +139,20 @@ private fun mainMenu(bot: Bot, msg: Message) {
 
 fun returnListOfDebtorsForChat(chatId: Long, bot: Bot) {
     var result = ""
-    val debtors = getDebtors()
+    val debtors = getDebtors(chatId)
     debtors.forEach { document -> result += "${document["name"]} ${document["totalAmount"]} BYN\n" }
     bot.sendMessage(chatId, if (result.isNotEmpty()) result else "Пока что никто тебе не должен")
 }
 
-fun getDebtors(): FindIterable<Document> {
+fun getDebtors(chatId: Long): FindIterable<Document> {
     val connectionString = MongoClientURI(databaseUrl)
     val mongoClient = MongoClient(connectionString)
     val database: MongoDatabase = mongoClient.getDatabase(database)
     val collection = database.getCollection("debts")
-    return collection.find(gt("totalAmount", 0))
+    val whereQuery = BasicDBObject()
+    whereQuery["chatId"] = chatId
+    whereQuery["totalAmount"] = BasicDBObject("\$gt", 0)
+    return collection.find(whereQuery)
 }
 
 fun isStringMatchDebtPattern(str: String): Boolean {
