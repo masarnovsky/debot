@@ -7,13 +7,15 @@ import com.elbekD.bot.types.Message
 import com.mongodb.BasicDBObject
 import com.mongodb.MongoClient
 import com.mongodb.MongoClientURI
-import com.mongodb.client.FindIterable
 import com.mongodb.client.MongoDatabase
 import com.mongodb.client.model.Filters.eq
 import org.bson.Document
+import org.litote.kmongo.KMongo
+import org.litote.kmongo.getCollection
 import java.io.FileInputStream
 import java.time.Instant
 import java.util.*
+
 
 var token = ""
 var username = ""
@@ -58,7 +60,9 @@ fun main() {
         mainMenu(bot, msg)
     }
 
-    bot.onCommand("/all") { msg, _ -> returnListOfDebtorsForChat(msg.chat.id, bot)}
+    bot.onCommand("/all") { msg, _ -> returnListOfDebtorsForChat(msg.chat.id, bot) }
+
+    bot.onCommand("/show") { msg, _ -> showPersonDebts(msg) }
 
     bot.onCallbackQuery { callback ->
         val data = callback.data!!
@@ -71,6 +75,10 @@ fun main() {
     }
 
     bot.start()
+}
+
+fun showPersonDebts(msg: Message) {
+    TODO("Not yet implemented")
 }
 
 private fun addNewDebtor(bot: Bot, message: Message) {
@@ -142,19 +150,26 @@ private fun mainMenu(bot: Bot, msg: Message) {
 fun returnListOfDebtorsForChat(chatId: Long, bot: Bot) {
     var result = ""
     val debtors = getDebtors(chatId)
-    debtors.forEach { document -> result += "${document["name"]} ${document["totalAmount"]} BYN\n" }
+    debtors.forEach { debtor -> result += "${debtor.name} ${debtor.totalAmount} BYN за: ${formatDebts(debtor.debts)}\n" }
     bot.sendMessage(chatId, if (result.isNotEmpty()) result else "Пока что никто тебе не должен")
 }
 
-fun getDebtors(chatId: Long): FindIterable<Document> {
-    val connectionString = MongoClientURI(databaseUrl)
-    val mongoClient = MongoClient(connectionString)
-    val database: MongoDatabase = mongoClient.getDatabase(database)
-    val collection = database.getCollection("debts")
-    val whereQuery = BasicDBObject()
-    whereQuery["chatId"] = chatId
-    whereQuery["totalAmount"] = BasicDBObject("\$gt", 0)
-    return collection.find(whereQuery)
+fun formatDebts(debts: MutableList<Debt>): String {
+    return debts
+        .map { debt -> debt.comment }
+        .joinToString(", ")
+}
+
+fun getDebtors(chatId: Long): List<Debtor> {
+    KMongo.createClient(databaseUrl).use { client ->
+        val db = client.getDatabase(database)
+        val collection = db.getCollection<Debtor>("debts")
+        val whereQuery = BasicDBObject()
+        whereQuery["chatId"] = chatId
+        whereQuery["totalAmount"] = BasicDBObject("\$gt", 0)
+        return collection.find(whereQuery).toList()
+    }
+
 }
 
 fun isStringMatchDebtPattern(str: String): Boolean {
