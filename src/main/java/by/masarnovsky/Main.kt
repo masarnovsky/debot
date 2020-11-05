@@ -21,8 +21,10 @@ var token = ""
 var username = ""
 var databaseUrl = ""
 var database = ""
+
 const val PATTERN_NEW_DEBTOR = "(?<name>[\\p{L}\\s]*) (?<sum>[0-9.,]+) (?<comment>[\\p{L}\\s-!?)(.,]*)"
 const val PATTERN_REPAY = "(?<name>[\\p{L}\\s]*) (?<sum>-[0-9.,]+)"
+const val REPAY_VALUE = "Возврат суммы"
 
 fun loadProperties() {
     if (System.getenv()["IS_PROD"].toString() != "null") {
@@ -94,7 +96,7 @@ private fun addNewDebtor(bot: Bot, message: Message) {
 fun repay(bot: Bot, message: Message) {
     val match = PATTERN_REPAY.toRegex().find(message.text!!)!!
     val (name, sum) = match.destructured
-    val debtor = updateDebtor(name, sum, "Возврат суммы", message.chat.id)!!
+    val debtor = updateDebtor(name, sum, REPAY_VALUE, message.chat.id)!!
     bot.sendMessage(
         message.chat.id,
         "${debtor["name"]} вернул(а) $sum BYN и теперь торчит ${debtor["totalAmount"]} BYN"
@@ -157,6 +159,7 @@ fun returnListOfDebtorsForChat(chatId: Long, bot: Bot) {
 fun formatDebts(debts: MutableList<Debt>): String {
     return debts
         .map { debt -> debt.comment }
+        .filter { it != REPAY_VALUE }
         .joinToString(", ")
 }
 
@@ -169,7 +172,6 @@ fun getDebtors(chatId: Long): List<Debtor> {
         whereQuery["totalAmount"] = BasicDBObject("\$gt", 0)
         return collection.find(whereQuery).toList()
     }
-
 }
 
 fun isStringMatchDebtPattern(str: String): Boolean {
