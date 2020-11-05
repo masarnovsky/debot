@@ -5,16 +5,16 @@ import com.elbekD.bot.types.InlineKeyboardButton
 import com.elbekD.bot.types.InlineKeyboardMarkup
 import com.elbekD.bot.types.Message
 import com.mongodb.BasicDBObject
-import com.mongodb.MongoClient
-import com.mongodb.MongoClientURI
 import com.mongodb.client.MongoDatabase
 import com.mongodb.client.model.Filters.eq
 import org.bson.Document
 import org.litote.kmongo.KMongo
+import org.litote.kmongo.findOne
 import org.litote.kmongo.getCollection
 import java.io.FileInputStream
 import java.time.Instant
 import java.util.*
+import kotlin.collections.set
 
 
 var token = ""
@@ -59,6 +59,7 @@ fun main() {
     }
 
     bot.onCommand("/start") { msg, _ ->
+        saveOrUpdateNewUser(bot, msg)
         mainMenu(bot, msg)
     }
 
@@ -79,6 +80,10 @@ fun main() {
     bot.start()
 }
 
+fun saveOrUpdateNewUser(bot: Bot, msg: Message) {
+    TODO("Not yet implemented")
+}
+
 fun showPersonDebts(msg: Message) {
     TODO("Not yet implemented")
 }
@@ -86,56 +91,47 @@ fun showPersonDebts(msg: Message) {
 private fun addNewDebtor(bot: Bot, message: Message) {
     val match = PATTERN_NEW_DEBTOR.toRegex().find(message.text!!)!!
     val (name, sum, comment) = match.destructured
-    val debtor = updateDebtor(name, sum, comment, message.chat.id)!!
+    val debtor = updateDebtor(name, sum, comment, message.chat.id)
     bot.sendMessage(
         message.chat.id,
-        "Теперь ${debtor["name"]} торчит тебе ${debtor["totalAmount"]} BYN"
+        "Теперь ${debtor.name} торчит тебе ${debtor.totalAmount} BYN"
     )
 }
 
 fun repay(bot: Bot, message: Message) {
     val match = PATTERN_REPAY.toRegex().find(message.text!!)!!
     val (name, sum) = match.destructured
-    val debtor = updateDebtor(name, sum, REPAY_VALUE, message.chat.id)!!
+    val debtor = updateDebtor(name, sum, REPAY_VALUE, message.chat.id)
     bot.sendMessage(
         message.chat.id,
-        "${debtor["name"]} вернул(а) $sum BYN и теперь торчит ${debtor["totalAmount"]} BYN"
+        "${debtor.name} вернул(а) $sum BYN и теперь торчит ${debtor.totalAmount} BYN"
     )
 }
 
-fun updateDebtor(name: String, sum: String, comment: String, chatId: Long): Document? {
+fun updateDebtor(name: String, sumValue: String, comment: String, chatId: Long): Debtor {
     val lowercaseName = name.toLowerCase()
-    val connectionString = MongoClientURI(databaseUrl)
-    val mongoClient = MongoClient(connectionString)
-    val database: MongoDatabase = mongoClient.getDatabase(database)
-    val collection = database.getCollection("debts")
-    var debtor = collection.find(Document("name", lowercaseName).append("chatId", chatId)).first()
-    var totalAmount = sum.toDouble()
+    val sum = sumValue.toDouble()
+    var debt = Debt(sum, comment, Instant.now())
 
-    var debt = Document("sum", sum)
-        .append("comment", comment)
-        .append("date", Instant.now())
+    KMongo.createClient(databaseUrl).use { client ->
+        val database: MongoDatabase = client.getDatabase(database)
+        val collection = database.getCollection<Debtor>("debts")
+        val whereQuery = BasicDBObject(mapOf("chatId" to chatId, "name" to lowercaseName))
+        var debtor = collection.findOne(whereQuery)
 
-    if (debtor == null) {
-        debt.append("totalAmount", totalAmount)
+        if (debtor != null) {
+            debtor.totalAmount += sum
+            debt.totalAmount = debtor.totalAmount
+            debtor.debts.add(debt)
+            collection.updateOne(eq("_id", debtor._id), Document("\$set", debtor))
+        } else {
+            debt.totalAmount = sum
+            debtor = Debtor(chatId, lowercaseName, sum, mutableListOf(debt))
+            collection.insertOne(debtor)
+        }
 
-        debtor = Document("chatId", chatId)
-            .append("name", lowercaseName)
-            .append("totalAmount", totalAmount)
-            .append("debts", mutableListOf(debt))
-        collection.insertOne(debtor!!)
-    } else {
-        totalAmount += debtor.getDouble("totalAmount")
-        debtor["totalAmount"] = totalAmount
-        debt.append("totalAmount", totalAmount)
-
-        val debts: MutableList<Document> = debtor["debts"] as MutableList<Document>
-        debts.add(debt)
-        collection.updateOne(eq("name", lowercaseName), Document("\$set", debtor))
+        return debtor
     }
-
-    mongoClient.close()
-    return debtor
 }
 
 private fun mainMenu(bot: Bot, msg: Message) {
