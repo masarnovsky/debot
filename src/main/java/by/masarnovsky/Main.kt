@@ -58,6 +58,8 @@ fun main() {
         mainMenu(bot, msg)
     }
 
+    bot.onCommand("/all") { msg, _ -> returnListOfDebtorsForChat(msg.chat.id, bot)}
+
     bot.onCallbackQuery { callback ->
         val data = callback.data!!
         val chatId = callback.message?.chat?.id!!
