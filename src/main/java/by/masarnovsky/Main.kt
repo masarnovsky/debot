@@ -9,7 +9,8 @@ import com.mongodb.client.MongoDatabase
 import mu.KotlinLogging
 import org.litote.kmongo.*
 import java.io.FileInputStream
-import java.time.Instant
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 import java.util.*
 
 
@@ -69,7 +70,7 @@ fun main() {
 
     bot.onCommand("/all") { msg, _ -> returnListOfDebtorsForChat(msg.chat.id, bot) }
 
-    bot.onCommand("/show") { msg, _ -> showPersonDebts(msg) }
+    bot.onCommand("/show") { msg, _ -> showPersonDebts(msg, bot) }
 
     bot.onCallbackQuery { callback ->
         val data = callback.data!!
@@ -104,14 +105,36 @@ fun saveOrUpdateNewUser(msg: Message) {
             user.firstName = firstName
             user.lastName = lastName
             user.username = username
-            user.updated = Instant.now()
+            user.updated = LocalDateTime.now()
         }
         collection.save(user)
     }
 }
 
-fun showPersonDebts(msg: Message) {
-    TODO("Not yet implemented")
+fun showPersonDebts(msg: Message, bot: Bot) {
+    logger.info { "call showPersonDebts for ${msg.chat.id}" }
+    val name = msg.text?.replace("/show ", "")
+    KMongo.createClient(databaseUrl).use { client ->
+        val database: MongoDatabase = client.getDatabase(database)
+        val collection = database.getCollection<Debtor>(DEBTS_COLLECTION)
+        val debtor = collection.findOne(Debtor::name eq name)
+
+        if (debtor != null) {
+            var result = "Текущий долг для ${debtor.name} равняется ${debtor.totalAmount}\nИстория долгов:\n"
+            debtor.debts.reversed()
+                .forEach { debt ->
+                    result += "${
+                        debt.date.format(
+                            DateTimeFormatter
+                                .ofPattern("yyyy-MM-dd HH:mm:ss")
+                        )
+                    } |    ${debt.sum} за ${debt.comment}\n"
+                }
+            bot.sendMessage(msg.chat.id, result)
+        } else {
+            bot.sendMessage(msg.chat.id, "По такому имени ничего не найдено, попробуйте что-нибудь другое")
+        }
+    }
 }
 
 private fun addNewDebtor(bot: Bot, message: Message) {
@@ -140,7 +163,7 @@ fun updateDebtor(name: String, sumValue: String, comment: String, chatId: Long):
     logger.info { "call updateDebtor method for $chatId" }
     val lowercaseName = name.toLowerCase()
     val sum = sumValue.toDouble()
-    var debt = Debt(sum, comment, Instant.now())
+    val debt = Debt(sum, comment, LocalDateTime.now())
 
     KMongo.createClient(databaseUrl).use { client ->
         val database: MongoDatabase = client.getDatabase(database)
@@ -186,6 +209,7 @@ fun returnListOfDebtorsForChat(chatId: Long, bot: Bot) {
 
 fun formatDebts(debts: MutableList<Debt>): String {
     return debts
+        .sortedByDescending { it.date }
         .map { debt -> debt.comment }
         .filter { it != REPAY_VALUE }
         .joinToString(", ")

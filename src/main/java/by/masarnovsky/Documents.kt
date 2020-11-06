@@ -1,7 +1,7 @@
 package by.masarnovsky
 
 import org.bson.types.ObjectId
-import java.time.Instant
+import java.time.LocalDateTime
 
 data class Debtor(
     var _id: ObjectId?,
@@ -19,8 +19,8 @@ data class Debtor(
     )
 }
 
-data class Debt(val sum: Double, val comment: String, val date: Instant, var totalAmount: Double) {
-    constructor(sum: Double, comment: String, date: Instant) : this(sum, comment, date, sum)
+data class Debt(val sum: Double, val comment: String, val date: LocalDateTime, var totalAmount: Double) {
+    constructor(sum: Double, comment: String, date: LocalDateTime) : this(sum, comment, date, sum)
 }
 
 data class User(
@@ -30,8 +30,10 @@ data class User(
     var firstName: String?,
     var lastName: String?,
     var lastCommand: String?,
-    val created: Instant,
-    var updated: Instant
+    val created: LocalDateTime,
+    var updated: LocalDateTime
 ) {
-    constructor(chatId: Long, username: String?, firstName: String?, lastName: String?) : this(null, chatId, username, firstName, lastName, null, Instant.now(), Instant.now())
+    constructor(chatId: Long, username: String?, firstName: String?, lastName: String?) : this(
+        null, chatId, username, firstName, lastName, null, LocalDateTime.now(), LocalDateTime.now()
+    )
 }
