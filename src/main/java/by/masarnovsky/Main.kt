@@ -7,6 +7,7 @@ import com.elbekD.bot.types.Message
 import com.mongodb.BasicDBObject
 import com.mongodb.client.MongoDatabase
 import com.mongodb.client.model.Filters.eq
+import mu.KotlinLogging
 import org.bson.Document
 import org.litote.kmongo.KMongo
 import org.litote.kmongo.eq
@@ -29,13 +30,17 @@ const val REPAY_VALUE = "Возврат суммы"
 const val USERS_COLLECTION = "users"
 const val DEBTS_COLLECTION = "debts"
 
+private val logger = KotlinLogging.logger {}
+
 fun loadProperties() {
     if (System.getenv()["IS_PROD"].toString() != "null") {
+        logger.info { "setup prod environment" }
         token = System.getenv()["BOT_TOKEN"].toString()
         username = System.getenv()["BOT_USERNAME"].toString()
         databaseUrl = System.getenv()["DATABASE_URL"].toString()
         database = System.getenv()["DATABASE"].toString()
     } else {
+        logger.info { "setup test environment" }
         val properties = Properties()
         val propertiesFile = System.getProperty("user.dir") + "\\test_env.properties"
         val inputStream = FileInputStream(propertiesFile)
@@ -62,6 +67,7 @@ fun main() {
     }
 
     bot.onCommand("/start") { msg, _ ->
+        logger.info { "/start command was called" }
         saveOrUpdateNewUser(msg)
         mainMenu(bot, msg)
     }
@@ -88,6 +94,7 @@ fun saveOrUpdateNewUser(msg: Message) {
     val username = msg.chat.username
     val firstName = msg.chat.first_name
     val lastName = msg.chat.last_name
+    logger.info { "save or update method was added with parameters: $chatId, $username, $firstName, $lastName" }
 
     KMongo.createClient(databaseUrl).use { client ->
         val database: MongoDatabase = client.getDatabase(database)
@@ -95,9 +102,11 @@ fun saveOrUpdateNewUser(msg: Message) {
 
         var user = collection.findOne(User::chatId eq chatId)
         if (user == null) {
+            logger.info { "insert new user" }
             user = User(chatId, username, firstName, lastName)
             collection.insertOne(user)
         } else {
+            logger.info { "update existed user" }
             user.firstName = firstName
             user.lastName = lastName
             user.username = username
@@ -183,6 +192,7 @@ fun formatDebts(debts: MutableList<Debt>): String {
 }
 
 fun getDebtors(chatId: Long): List<Debtor> {
+    logger.info { "method getDebtors was called" }
     KMongo.createClient(databaseUrl).use { client ->
         val db = client.getDatabase(database)
         val collection = db.getCollection<Debtor>(DEBTS_COLLECTION)
