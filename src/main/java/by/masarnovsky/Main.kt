@@ -132,7 +132,7 @@ fun showPersonDebts(msg: Message, bot: Bot) {
                 }
             bot.sendMessage(msg.chat.id, result)
         } else {
-            bot.sendMessage(msg.chat.id, "По такому имени ничего не найдено, попробуйте что-нибудь другое")
+            bot.sendMessage(msg.chat.id, "Вы забыли имя, либо по такому имени ничего не найдено")
         }
     }
 }
