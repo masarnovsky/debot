@@ -9,12 +9,12 @@ import com.mongodb.client.MongoDatabase
 import com.mongodb.client.model.Filters.eq
 import org.bson.Document
 import org.litote.kmongo.KMongo
+import org.litote.kmongo.eq
 import org.litote.kmongo.findOne
 import org.litote.kmongo.getCollection
 import java.io.FileInputStream
 import java.time.Instant
 import java.util.*
-import kotlin.collections.set
 
 
 var token = ""
@@ -25,6 +25,9 @@ var database = ""
 const val PATTERN_NEW_DEBTOR = "(?<name>[\\p{L}\\s]*) (?<sum>[0-9.,]+) (?<comment>[\\p{L}\\s-!?)(.,]*)"
 const val PATTERN_REPAY = "(?<name>[\\p{L}\\s]*) (?<sum>-[0-9.,]+)"
 const val REPAY_VALUE = "Возврат суммы"
+
+const val USERS_COLLECTION = "users"
+const val DEBTS_COLLECTION = "debts"
 
 fun loadProperties() {
     if (System.getenv()["IS_PROD"].toString() != "null") {
@@ -59,7 +62,7 @@ fun main() {
     }
 
     bot.onCommand("/start") { msg, _ ->
-        saveOrUpdateNewUser(bot, msg)
+        saveOrUpdateNewUser(msg)
         mainMenu(bot, msg)
     }
 
@@ -80,8 +83,28 @@ fun main() {
     bot.start()
 }
 
-fun saveOrUpdateNewUser(bot: Bot, msg: Message) {
-    TODO("Not yet implemented")
+fun saveOrUpdateNewUser(msg: Message) {
+    val chatId = msg.chat.id
+    val username = msg.chat.username
+    val firstName = msg.chat.first_name
+    val lastName = msg.chat.last_name
+
+    KMongo.createClient(databaseUrl).use { client ->
+        val database: MongoDatabase = client.getDatabase(database)
+        val collection = database.getCollection<User>(USERS_COLLECTION)
+
+        var user = collection.findOne(User::chatId eq chatId)
+        if (user == null) {
+            user = User(chatId, username, firstName, lastName)
+            collection.insertOne(user)
+        } else {
+            user.firstName = firstName
+            user.lastName = lastName
+            user.username = username
+            user.updated = Instant.now()
+            collection.updateOne(eq("_id", user._id), Document("\$set", user))
+        }
+    }
 }
 
 fun showPersonDebts(msg: Message) {
@@ -115,7 +138,7 @@ fun updateDebtor(name: String, sumValue: String, comment: String, chatId: Long):
 
     KMongo.createClient(databaseUrl).use { client ->
         val database: MongoDatabase = client.getDatabase(database)
-        val collection = database.getCollection<Debtor>("debts")
+        val collection = database.getCollection<Debtor>(DEBTS_COLLECTION)
         val whereQuery = BasicDBObject(mapOf("chatId" to chatId, "name" to lowercaseName))
         var debtor = collection.findOne(whereQuery)
 
@@ -162,10 +185,8 @@ fun formatDebts(debts: MutableList<Debt>): String {
 fun getDebtors(chatId: Long): List<Debtor> {
     KMongo.createClient(databaseUrl).use { client ->
         val db = client.getDatabase(database)
-        val collection = db.getCollection<Debtor>("debts")
-        val whereQuery = BasicDBObject()
-        whereQuery["chatId"] = chatId
-        whereQuery["totalAmount"] = BasicDBObject("\$gt", 0)
+        val collection = db.getCollection<Debtor>(DEBTS_COLLECTION)
+        val whereQuery = BasicDBObject(mapOf("chatId" to chatId, "totalAmount" to BasicDBObject("\$gt", 0)))
         return collection.find(whereQuery).toList()
     }
 }

@@ -22,3 +22,16 @@ data class Debtor(
 data class Debt(val sum: Double, val comment: String, val date: Instant, var totalAmount: Double) {
     constructor(sum: Double, comment: String, date: Instant) : this(sum, comment, date, sum)
 }
+
+data class User(
+    val _id: ObjectId?,
+    val chatId: Long,
+    var username: String?,
+    var firstName: String?,
+    var lastName: String?,
+    var lastCommand: String?,
+    val created: Instant,
+    var updated: Instant
+) {
+    constructor(chatId: Long, username: String?, firstName: String?, lastName: String?) : this(null, chatId, username, firstName, lastName, null, Instant.now(), Instant.now())
+}
