@@ -6,13 +6,8 @@ import com.elbekD.bot.types.InlineKeyboardMarkup
 import com.elbekD.bot.types.Message
 import com.mongodb.BasicDBObject
 import com.mongodb.client.MongoDatabase
-import com.mongodb.client.model.Filters.eq
 import mu.KotlinLogging
-import org.bson.Document
-import org.litote.kmongo.KMongo
-import org.litote.kmongo.eq
-import org.litote.kmongo.findOne
-import org.litote.kmongo.getCollection
+import org.litote.kmongo.*
 import java.io.FileInputStream
 import java.time.Instant
 import java.util.*
@@ -104,15 +99,14 @@ fun saveOrUpdateNewUser(msg: Message) {
         if (user == null) {
             logger.info { "insert new user" }
             user = User(chatId, username, firstName, lastName)
-            collection.insertOne(user)
         } else {
             logger.info { "update existed user" }
             user.firstName = firstName
             user.lastName = lastName
             user.username = username
             user.updated = Instant.now()
-            collection.updateOne(eq("_id", user._id), Document("\$set", user))
         }
+        collection.save(user)
     }
 }
 
@@ -121,6 +115,7 @@ fun showPersonDebts(msg: Message) {
 }
 
 private fun addNewDebtor(bot: Bot, message: Message) {
+    logger.info { "call addNewDebtor method for ${message.chat.id}" }
     val match = PATTERN_NEW_DEBTOR.toRegex().find(message.text!!)!!
     val (name, sum, comment) = match.destructured
     val debtor = updateDebtor(name, sum, comment, message.chat.id)
@@ -131,6 +126,7 @@ private fun addNewDebtor(bot: Bot, message: Message) {
 }
 
 fun repay(bot: Bot, message: Message) {
+    logger.info { "call repay method for ${message.chat.id}" }
     val match = PATTERN_REPAY.toRegex().find(message.text!!)!!
     val (name, sum) = match.destructured
     val debtor = updateDebtor(name, sum, REPAY_VALUE, message.chat.id)
@@ -141,6 +137,7 @@ fun repay(bot: Bot, message: Message) {
 }
 
 fun updateDebtor(name: String, sumValue: String, comment: String, chatId: Long): Debtor {
+    logger.info { "call updateDebtor method for $chatId" }
     val lowercaseName = name.toLowerCase()
     val sum = sumValue.toDouble()
     var debt = Debt(sum, comment, Instant.now())
@@ -152,21 +149,23 @@ fun updateDebtor(name: String, sumValue: String, comment: String, chatId: Long):
         var debtor = collection.findOne(whereQuery)
 
         if (debtor != null) {
+            logger.info { "update existed debtor for $chatId" }
             debtor.totalAmount += sum
             debt.totalAmount = debtor.totalAmount
             debtor.debts.add(debt)
-            collection.updateOne(eq("_id", debtor._id), Document("\$set", debtor))
         } else {
+            logger.info { "create new debtor for $chatId" }
             debt.totalAmount = sum
             debtor = Debtor(chatId, lowercaseName, sum, mutableListOf(debt))
-            collection.insertOne(debtor)
         }
+        collection.save(debtor)
 
         return debtor
     }
 }
 
 private fun mainMenu(bot: Bot, msg: Message) {
+    logger.info { "main menu was called for ${msg.chat.id}" }
     val list = InlineKeyboardButton(text = "Список всех", callback_data = "callback_list")
     val keyboard = InlineKeyboardMarkup(listOf(listOf(list)))
     bot.sendMessage(
@@ -178,6 +177,7 @@ private fun mainMenu(bot: Bot, msg: Message) {
 }
 
 fun returnListOfDebtorsForChat(chatId: Long, bot: Bot) {
+    logger.info { "call returnListOfDebtorsForChat method for $chatId" }
     var result = ""
     val debtors = getDebtors(chatId)
     debtors.forEach { debtor -> result += "${debtor.name} ${debtor.totalAmount} BYN за: ${formatDebts(debtor.debts)}\n" }
