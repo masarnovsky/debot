@@ -72,6 +72,8 @@ fun main() {
 
     bot.onCommand("/show") { msg, _ -> showPersonDebts(msg, bot) }
 
+    bot.onCommand("/delete") { msg, _ -> deletePerson(msg, bot) }
+
     bot.onCallbackQuery { callback ->
         val data = callback.data!!
         val chatId = callback.message?.chat?.id!!
@@ -111,13 +113,29 @@ fun saveOrUpdateNewUser(msg: Message) {
     }
 }
 
+fun deletePerson(msg: Message, bot: Bot) {
+    logger.info { "call deletePerson for ${msg.chat.id}" }
+    val name = msg.text?.replace("/delete ", "")
+    KMongo.createClient(databaseUrl).use { client ->
+        val database: MongoDatabase = client.getDatabase(database)
+        val collection = database.getCollection<Debtor>(DEBTS_COLLECTION)
+        val whereQuery = BasicDBObject(mapOf("chatId" to msg.chat.id, "name" to name?.toLowerCase()))
+        val deletedCount = collection.deleteOne(whereQuery).deletedCount
+        bot.sendMessage(
+            msg.chat.id,
+            if (deletedCount > 0) "Информация о должнике $name была удалена" else "Вы забыли имя, либо по такому имени ничего не найдено"
+        )
+    }
+}
+
 fun showPersonDebts(msg: Message, bot: Bot) {
     logger.info { "call showPersonDebts for ${msg.chat.id}" }
     val name = msg.text?.replace("/show ", "")
     KMongo.createClient(databaseUrl).use { client ->
         val database: MongoDatabase = client.getDatabase(database)
         val collection = database.getCollection<Debtor>(DEBTS_COLLECTION)
-        val debtor = collection.findOne(Debtor::name eq name)
+        val whereQuery = BasicDBObject(mapOf("chatId" to msg.chat.id, "name" to name?.toLowerCase()))
+        val debtor = collection.findOne(whereQuery)
 
         if (debtor != null) {
             var result = "Текущий долг для ${debtor.name} равняется ${debtor.totalAmount}\nИстория долгов:\n"
