@@ -130,28 +130,33 @@ fun deletePerson(msg: Message, bot: Bot) {
 
 fun showPersonDebts(msg: Message, bot: Bot) {
     logger.info { "call showPersonDebts for ${msg.chat.id}" }
-    val name = msg.text?.replace("/show ", "")
-    KMongo.createClient(databaseUrl).use { client ->
-        val database: MongoDatabase = client.getDatabase(database)
-        val collection = database.getCollection<Debtor>(DEBTS_COLLECTION)
-        val whereQuery = BasicDBObject(mapOf("chatId" to msg.chat.id, "name" to name?.toLowerCase()))
-        val debtor = collection.findOne(whereQuery)
+    if ("/show" != msg.text) {
+        val name = msg.text?.replace("/show ", "")
+        KMongo.createClient(databaseUrl).use { client ->
+            val database: MongoDatabase = client.getDatabase(database)
+            val collection = database.getCollection<Debtor>(DEBTS_COLLECTION)
+            val whereQuery = BasicDBObject(mapOf("chatId" to msg.chat.id, "name" to name?.toLowerCase()))
+            val debtor = collection.findOne(whereQuery)
 
-        if (debtor != null) {
-            var result = "Текущий долг для ${debtor.name} равняется ${debtor.totalAmount}\nИстория долгов:\n"
-            debtor.debts.reversed()
-                .forEach { debt ->
-                    result += "${
-                        debt.date.format(
-                            DateTimeFormatter
-                                .ofPattern("yyyy-MM-dd HH:mm:ss")
-                        )
-                    } |    ${debt.sum} за ${debt.comment}\n"
-                }
-            bot.sendMessage(msg.chat.id, result)
-        } else {
-            bot.sendMessage(msg.chat.id, "Вы забыли имя, либо по такому имени ничего не найдено")
+            if (debtor != null) {
+                var result = "Текущий долг для ${debtor.name} равняется ${debtor.totalAmount}\nИстория долгов:\n"
+                debtor.debts.reversed()
+                    .forEach { debt ->
+                        result += "${
+                            debt.date.format(
+                                DateTimeFormatter
+                                    .ofPattern("yyyy-MM-dd HH:mm:ss")
+                            )
+                        } |    ${debt.sum} за ${debt.comment}\n"
+                    }
+                bot.sendMessage(msg.chat.id, result)
+            } else {
+                bot.sendMessage(msg.chat.id, "По такому имени ничего не найдено")
+            }
         }
+    } else {
+        logger.info { "/show command without name. call returnListOfDebtorsForChat for ${msg.chat.id}" }
+        returnListOfDebtorsForChat(msg.chat.id, bot)
     }
 }
 
