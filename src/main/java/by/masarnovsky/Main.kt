@@ -168,7 +168,8 @@ private fun addNewDebtor(bot: Bot, message: Message) {
     val debtor = updateDebtor(name, sum, comment, message.chat.id)
     bot.sendMessage(
         message.chat.id,
-        "Теперь ${debtor.name} торчит тебе ${debtor.totalAmount} BYN за ${formatDebts(debtor.debts, false)}"
+        "Теперь ${debtor.name} торчит тебе ${debtor.totalAmount} BYN за: <b>${formatDebts(debtor.debts, false)}</b>",
+        parseMode = "HTML",
     )
 }
 
@@ -179,12 +180,13 @@ fun repay(bot: Bot, message: Message) {
     val debtor = updateDebtor(name, sum, REPAY_VALUE, message.chat.id)
     bot.sendMessage(
         message.chat.id,
-        "${debtor.name} вернул(а) $sum BYN и теперь торчит ${debtor.totalAmount} BYN за ${
+        "${debtor.name} вернул(а) $sum BYN и теперь торчит ${debtor.totalAmount} BYN за: <b>${
             formatDebts(
                 debtor.debts,
                 false
             )
-        }"
+        }</b>",
+        parseMode = "HTML",
     )
 }
 
