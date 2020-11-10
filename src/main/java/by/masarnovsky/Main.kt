@@ -9,6 +9,7 @@ import com.mongodb.client.MongoDatabase
 import mu.KotlinLogging
 import org.litote.kmongo.*
 import java.io.FileInputStream
+import java.math.BigDecimal
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.util.*
@@ -167,7 +168,7 @@ private fun addNewDebtor(bot: Bot, message: Message) {
     val debtor = updateDebtor(name, sum, comment, message.chat.id)
     bot.sendMessage(
         message.chat.id,
-        "Теперь ${debtor.name} торчит тебе ${debtor.totalAmount} BYN"
+        "Теперь ${debtor.name} торчит тебе ${debtor.totalAmount} BYN за ${formatDebts(debtor.debts, false)}"
     )
 }
 
@@ -178,7 +179,12 @@ fun repay(bot: Bot, message: Message) {
     val debtor = updateDebtor(name, sum, REPAY_VALUE, message.chat.id)
     bot.sendMessage(
         message.chat.id,
-        "${debtor.name} вернул(а) $sum BYN и теперь торчит ${debtor.totalAmount} BYN"
+        "${debtor.name} вернул(а) $sum BYN и теперь торчит ${debtor.totalAmount} BYN за ${
+            formatDebts(
+                debtor.debts,
+                false
+            )
+        }"
     )
 }
 
@@ -230,12 +236,28 @@ fun returnListOfDebtorsForChat(chatId: Long, bot: Bot) {
     bot.sendMessage(chatId, if (result.isNotEmpty()) result else "Пока что никто тебе не должен")
 }
 
-fun formatDebts(debts: MutableList<Debt>): String {
-    return debts
-        .sortedByDescending { it.date }
-        .map { debt -> debt.comment }
-        .filter { it != REPAY_VALUE }
-        .joinToString(", ")
+fun formatDebts(debts: MutableList<Debt>, isFullDebtsOutput: Boolean = true): String {
+    return if (isFullDebtsOutput) {
+        debts
+            .sortedByDescending { it.date }
+            .map { debt -> debt.comment }
+            .filter { it != REPAY_VALUE }
+            .joinToString(", ")
+    } else {
+        var totalAmount = BigDecimal.ZERO
+
+        debts
+            .sortedByDescending { it.date }
+            .filterIndexed { index, s ->
+                if (index == 0)
+                    totalAmount = s.totalAmount
+                if (s.comment != REPAY_VALUE)
+                    totalAmount -= s.sum
+                totalAmount + s.sum > BigDecimal.ZERO
+            }
+            .filter { it.comment != REPAY_VALUE }
+            .joinToString(", ") { debt -> debt.comment }
+    }
 }
 
 fun getDebtors(chatId: Long): List<Debtor> {
