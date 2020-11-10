@@ -185,7 +185,7 @@ fun repay(bot: Bot, message: Message) {
 fun updateDebtor(name: String, sumValue: String, comment: String, chatId: Long): Debtor {
     logger.info { "call updateDebtor method for $chatId" }
     val lowercaseName = name.toLowerCase()
-    val sum = sumValue.toDouble()
+    val sum = sumValue.toBigDecimal()
     val debt = Debt(sum, comment, LocalDateTime.now())
 
     KMongo.createClient(databaseUrl).use { client ->
