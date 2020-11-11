@@ -11,6 +11,7 @@ import org.litote.kmongo.*
 import java.io.FileInputStream
 import java.math.BigDecimal
 import java.time.LocalDateTime
+import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 import java.util.*
 
@@ -108,7 +109,7 @@ fun saveOrUpdateNewUser(msg: Message) {
             user.firstName = firstName
             user.lastName = lastName
             user.username = username
-            user.updated = LocalDateTime.now()
+            user.updated = LocalDateTime.now(ZoneOffset.of("+03:00"))
         }
         collection.save(user)
     }

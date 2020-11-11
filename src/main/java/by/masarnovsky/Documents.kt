@@ -3,6 +3,7 @@ package by.masarnovsky
 import org.bson.types.ObjectId
 import java.math.BigDecimal
 import java.time.LocalDateTime
+import java.time.ZoneOffset
 
 data class Debtor(
     var _id: ObjectId?,
@@ -33,9 +34,17 @@ data class User(
     var lastCommand: String?,
     var commandValue: String?,
     val created: LocalDateTime,
-    var updated: LocalDateTime
+    var updated: LocalDateTime,
 ) {
     constructor(chatId: Long, username: String?, firstName: String?, lastName: String?) : this(
-        null, chatId, username, firstName, lastName, null, null, LocalDateTime.now(), LocalDateTime.now()
+        null,
+        chatId,
+        username,
+        firstName,
+        lastName,
+        null,
+        null,
+        LocalDateTime.now(ZoneOffset.of("+03:00")),
+        LocalDateTime.now(ZoneOffset.of("+03:00")),
     )
 }
