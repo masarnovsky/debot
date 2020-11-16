@@ -181,7 +181,7 @@ fun repay(bot: Bot, message: Message) {
     var text: String
     text = try {
         val debtor = updateDebtor(name, sum, REPAY_VALUE, message.chat.id)
-        "${debtor.name} вернул(а) $sum BYN и теперь " + if (debtor.totalAmount > BigDecimal.ZERO) "торчит ${debtor.totalAmount} BYN за: <b>${
+        "${debtor.name} вернул(а) ${sum.toInt()*-1} BYN и теперь " + if (debtor.totalAmount > BigDecimal.ZERO) "торчит ${debtor.totalAmount} BYN за: <b>${
             formatDebts(
                 debtor.debts,
                 false
