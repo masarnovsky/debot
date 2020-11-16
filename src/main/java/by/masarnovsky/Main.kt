@@ -178,15 +178,21 @@ fun repay(bot: Bot, message: Message) {
     logger.info { "call repay method for ${message.chat.id}" }
     val match = PATTERN_REPAY.toRegex().find(message.text!!)!!
     val (name, sum) = match.destructured
-    val debtor = updateDebtor(name, sum, REPAY_VALUE, message.chat.id)
-    bot.sendMessage(
-        message.chat.id,
-        "${debtor.name} вернул(а) $sum BYN и теперь торчит ${debtor.totalAmount} BYN за: <b>${
+    var text: String
+    text = try {
+        val debtor = updateDebtor(name, sum, REPAY_VALUE, message.chat.id)
+        "${debtor.name} вернул(а) $sum BYN и теперь " + if (debtor.totalAmount > BigDecimal.ZERO) "торчит ${debtor.totalAmount} BYN за: <b>${
             formatDebts(
                 debtor.debts,
                 false
             )
-        }</b>",
+        }</b>" else "ничего не должен"
+    } catch (ex: NegativeBalanceException) {
+        "Введена неверная сумма, баланс не может быть отрицательным"
+    }
+    bot.sendMessage(
+        message.chat.id,
+        text,
         parseMode = "HTML",
     )
 }
@@ -213,6 +219,9 @@ fun updateDebtor(name: String, sumValue: String, comment: String, chatId: Long):
             debt.totalAmount = sum
             debtor = Debtor(chatId, lowercaseName, sum, mutableListOf(debt))
         }
+
+        if (debtor.totalAmount < BigDecimal.ZERO) throw NegativeBalanceException("Total amount should be positive number")
+
         collection.save(debtor)
 
         return debtor
