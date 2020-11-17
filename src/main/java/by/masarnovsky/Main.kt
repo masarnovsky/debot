@@ -181,7 +181,7 @@ fun repay(bot: Bot, message: Message) {
     var text: String
     text = try {
         val debtor = updateDebtor(name, sum, REPAY_VALUE, message.chat.id)
-        "${debtor.name} вернул(а) ${sum.toInt()*-1} BYN и теперь " + if (debtor.totalAmount > BigDecimal.ZERO) "торчит ${debtor.totalAmount} BYN за: <b>${
+        "${debtor.name} вернул(а) ${sum.toInt() * -1} BYN и теперь " + if (debtor.totalAmount > BigDecimal.ZERO) "торчит ${debtor.totalAmount} BYN за: <b>${
             formatDebts(
                 debtor.debts,
                 false
@@ -242,20 +242,23 @@ private fun mainMenu(bot: Bot, msg: Message) {
 
 fun returnListOfDebtorsForChat(chatId: Long, bot: Bot) {
     logger.info { "call returnListOfDebtorsForChat method for $chatId" }
-    var result = ""
     val debtors = getDebtors(chatId)
-    debtors.forEach { debtor -> result += "${debtor.name} ${debtor.totalAmount} BYN за: ${formatDebts(debtor.debts)}\n" }
+    val result = debtors.fold("") { result, debtor ->
+        result + "${debtor.name} ${debtor.totalAmount} BYN за: ${formatDebts(debtor.debts)}\n"
+    }
     bot.sendMessage(chatId, if (result.isNotEmpty()) result else "Пока что никто тебе не должен")
 }
 
 fun formatDebts(debts: MutableList<Debt>, isFullDebtsOutput: Boolean = true): String {
     return if (isFullDebtsOutput) {
+        logger.info { "format debts output for all items" }
         debts
             .sortedByDescending { it.date }
             .map { debt -> debt.comment }
             .filter { it != REPAY_VALUE }
             .joinToString(", ")
     } else {
+        logger.info { "format debts output for last items" }
         var totalAmount = BigDecimal.ZERO
 
         debts
