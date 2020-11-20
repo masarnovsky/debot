@@ -60,14 +60,14 @@ fun main() {
         } else if (message.text != null && isStringMatchRepayPattern(message.text!!)) {
             repay(bot, message)
         } else {
-            mainMenu(bot, message)
+            mainMenu(message.chat.id, bot)
         }
     }
 
     bot.onCommand("/start") { msg, _ ->
         logger.info { "/start command was called" }
         saveOrUpdateNewUser(msg)
-        mainMenu(bot, msg)
+        mainMenu(msg.chat.id, bot)
     }
 
     bot.onCommand("/all") { msg, _ -> returnListOfDebtorsForChat(msg.chat.id, bot) }
@@ -82,6 +82,8 @@ fun main() {
 
         when (data) {
             "callback_list" -> returnListOfDebtorsForChat(chatId, bot)
+            "delete_history_yes" -> deleteAllDebts(chatId, bot)
+            "delete_history_no" -> mainMenu(chatId, bot)
             else -> returnListOfDebtorsForChat(chatId, bot)
         }
     }
@@ -117,23 +119,52 @@ fun saveOrUpdateNewUser(msg: Message) {
 
 fun deletePerson(msg: Message, bot: Bot) {
     logger.info { "call deletePerson for ${msg.chat.id}" }
-    val name = msg.text?.replace("/delete ", "")
+    val name = msg.text?.replace(Regex("/delete ?"), "")
     KMongo.createClient(databaseUrl).use { client ->
         val database: MongoDatabase = client.getDatabase(database)
         val collection = database.getCollection<Debtor>(DEBTS_COLLECTION)
-        val whereQuery = BasicDBObject(mapOf("chatId" to msg.chat.id, "name" to name?.toLowerCase()))
-        val deletedCount = collection.deleteOne(whereQuery).deletedCount
+        if (name?.isNotEmpty() == true) {
+            logger.info { "delete $name for ${msg.chat.id}" }
+            val whereQuery = BasicDBObject(mapOf("chatId" to msg.chat.id, "name" to name?.toLowerCase()))
+            val deletedCount = collection.deleteOne(whereQuery).deletedCount
+            bot.sendMessage(
+                msg.chat.id,
+                if (deletedCount > 0) "Информация о должнике $name была удалена" else "По такому имени ничего не найдено"
+            )
+        } else {
+            logger.info { "delete all debtors for ${msg.chat.id}" }
+            val yes = InlineKeyboardButton(text = "Да", callback_data = "delete_history_yes")
+            val no = InlineKeyboardButton(text = "Нет", callback_data = "delete_history_no")
+            val keyboard = InlineKeyboardMarkup(listOf(listOf(yes, no)))
+            bot.sendMessage(
+                msg.chat.id,
+                "Вы точно хотите удалить <b>всех</b> должников?",
+                markup = keyboard,
+                parseMode = "HTML"
+            )
+        }
+    }
+}
+
+fun deleteAllDebts(chatId: Long, bot: Bot) {
+    logger.info { "call deleteAllDebts for $chatId" }
+    KMongo.createClient(databaseUrl).use { client ->
+        val database: MongoDatabase = client.getDatabase(database)
+        val collection = database.getCollection<Debtor>(DEBTS_COLLECTION)
+        val whereQuery = BasicDBObject(mapOf("chatId" to chatId))
+        val deletedCount = collection.deleteMany(whereQuery).deletedCount
         bot.sendMessage(
-            msg.chat.id,
-            if (deletedCount > 0) "Информация о должнике $name была удалена" else "Вы забыли имя, либо по такому имени ничего не найдено"
+            chatId,
+            if (deletedCount > 0) "Информация о $deletedCount должниках была удалена" else "Должников не найдено"
         )
     }
 }
 
 fun showPersonDebts(msg: Message, bot: Bot) {
     logger.info { "call showPersonDebts for ${msg.chat.id}" }
-    if ("/show" != msg.text) {
-        val name = msg.text?.replace("/show ", "")
+    val name = msg.text?.replace(Regex("/show ?"), "")
+    if (name?.isNotEmpty() == true) {
+        logger.info { "show $name debts for ${msg.chat.id}" }
         KMongo.createClient(databaseUrl).use { client ->
             val database: MongoDatabase = client.getDatabase(database)
             val collection = database.getCollection<Debtor>(DEBTS_COLLECTION)
@@ -228,12 +259,12 @@ fun updateDebtor(name: String, sumValue: String, comment: String, chatId: Long):
     }
 }
 
-private fun mainMenu(bot: Bot, msg: Message) {
-    logger.info { "main menu was called for ${msg.chat.id}" }
+private fun mainMenu(chatId: Long, bot: Bot) {
+    logger.info { "main menu was called for $chatId" }
     val list = InlineKeyboardButton(text = "Список всех", callback_data = "callback_list")
     val keyboard = InlineKeyboardMarkup(listOf(listOf(list)))
     bot.sendMessage(
-        msg.chat.id,
+        chatId,
         "Добавляй должника в таком формате: \n<b>имя 66.6 комментарий</b> \nЧтобы вычесть сумму долга: \n<b>имя -97</b> \nКнопочка чтобы посмотреть всех",
         markup = keyboard,
         parseMode = "HTML"
