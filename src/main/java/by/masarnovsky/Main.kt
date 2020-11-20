@@ -316,11 +316,9 @@ fun getDebtors(chatId: Long): List<Debtor> {
 }
 
 fun isStringMatchDebtPattern(str: String): Boolean {
-    val pattern = PATTERN_NEW_DEBTOR.toRegex()
-    return pattern matches str
+    return Regex(PATTERN_NEW_DEBTOR) matches str
 }
 
 fun isStringMatchRepayPattern(str: String): Boolean {
-    val pattern = PATTERN_REPAY.toRegex()
-    return pattern matches str
+    return Regex(PATTERN_REPAY) matches str
 }
