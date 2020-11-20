@@ -125,7 +125,7 @@ fun deletePerson(msg: Message, bot: Bot) {
         val collection = database.getCollection<Debtor>(DEBTS_COLLECTION)
         if (name?.isNotEmpty() == true) {
             logger.info { "delete $name for ${msg.chat.id}" }
-            val whereQuery = BasicDBObject(mapOf("chatId" to msg.chat.id, "name" to name?.toLowerCase()))
+            val whereQuery = BasicDBObject(mapOf("chatId" to msg.chat.id, "name" to name.toLowerCase()))
             val deletedCount = collection.deleteOne(whereQuery).deletedCount
             bot.sendMessage(
                 msg.chat.id,
@@ -168,7 +168,7 @@ fun showPersonDebts(msg: Message, bot: Bot) {
         KMongo.createClient(databaseUrl).use { client ->
             val database: MongoDatabase = client.getDatabase(database)
             val collection = database.getCollection<Debtor>(DEBTS_COLLECTION)
-            val whereQuery = BasicDBObject(mapOf("chatId" to msg.chat.id, "name" to name?.toLowerCase()))
+            val whereQuery = BasicDBObject(mapOf("chatId" to msg.chat.id, "name" to name.toLowerCase()))
             val debtor = collection.findOne(whereQuery)
 
             if (debtor != null) {
@@ -209,8 +209,7 @@ fun repay(bot: Bot, message: Message) {
     logger.info { "call repay method for ${message.chat.id}" }
     val match = PATTERN_REPAY.toRegex().find(message.text!!)!!
     val (name, sum) = match.destructured
-    var text: String
-    text = try {
+    val text = try {
         val debtor = updateDebtor(name, sum, REPAY_VALUE, message.chat.id)
         "${debtor.name} вернул(а) ${sum.toInt() * -1} BYN и теперь " + if (debtor.totalAmount > BigDecimal.ZERO) "торчит ${debtor.totalAmount} BYN за: <b>${
             formatDebts(
