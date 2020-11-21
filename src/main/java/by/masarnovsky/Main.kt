@@ -274,7 +274,7 @@ fun returnListOfDebtorsForChat(chatId: Long, bot: Bot) {
     logger.info { "call returnListOfDebtorsForChat method for $chatId" }
     val debtors = getDebtors(chatId)
     val result = debtors.fold("") { result, debtor ->
-        result + "${debtor.name} ${debtor.totalAmount} BYN за: ${formatDebts(debtor.debts)}\n"
+        result + "${debtor.name} ${debtor.totalAmount} BYN за: ${formatDebts(debtor.debts, false)}\n"
     }
     bot.sendMessage(chatId, if (result.isNotEmpty()) result else "Пока что никто тебе не должен")
 }
