@@ -35,8 +35,9 @@ data class User(
     var commandValue: String?,
     val created: LocalDateTime,
     var updated: LocalDateTime,
+    var userId: Int?,
 ) {
-    constructor(chatId: Long, username: String?, firstName: String?, lastName: String?) : this(
+    constructor(chatId: Long, username: String?, firstName: String?, lastName: String?, userId: Int?) : this(
         null,
         chatId,
         username,
@@ -46,5 +47,6 @@ data class User(
         null,
         LocalDateTime.now(ZoneOffset.of("+03:00")),
         LocalDateTime.now(ZoneOffset.of("+03:00")),
+        userId
     )
 }

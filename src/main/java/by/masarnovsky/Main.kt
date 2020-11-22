@@ -1,9 +1,7 @@
 package by.masarnovsky
 
 import com.elbekD.bot.Bot
-import com.elbekD.bot.types.InlineKeyboardButton
-import com.elbekD.bot.types.InlineKeyboardMarkup
-import com.elbekD.bot.types.Message
+import com.elbekD.bot.types.*
 import com.mongodb.BasicDBObject
 import com.mongodb.client.MongoDatabase
 import mu.KotlinLogging
@@ -76,6 +74,10 @@ fun main() {
 
     bot.onCommand("/delete") { msg, _ -> deletePerson(msg, bot) }
 
+    bot.onInlineQuery { inlineQuery ->
+        returnDebtorsForInlineQuery(inlineQuery, bot)
+    }
+
     bot.onCallbackQuery { callback ->
         val data = callback.data!!
         val chatId = callback.message?.chat?.id!!
@@ -91,8 +93,34 @@ fun main() {
     bot.start()
 }
 
+fun returnDebtorsForInlineQuery(inlineQuery: InlineQuery, bot: Bot) {
+    logger.info { "call returnDebtorsForInlineQuery for ${inlineQuery.from.id}" }
+    val debtors = getDebtors(inlineQuery.from.id.toLong())
+
+    val queries = mutableListOf<InlineQueryResultArticle>()
+    debtors.forEachIndexed { index, debtor ->
+        queries.add(
+            InlineQueryResultArticle(
+                index.toString(),
+                debtor.name,
+                InputTextMessageContent(
+                    "${debtor.name} торчит тебе ${debtor.totalAmount} BYN за: <b>${
+                        formatDebts(
+                            debtor.debts,
+                            false
+                        )
+                    }</b>", parse_mode = "HTML"
+                ),
+                description = "${debtor.name} торчит тебе ${debtor.totalAmount} BYN"
+            )
+        )
+    }
+    bot.answerInlineQuery(inlineQuery.id, queries)
+}
+
 fun saveOrUpdateNewUser(msg: Message) {
     val chatId = msg.chat.id
+    val userId = msg.from?.id
     val username = msg.chat.username
     val firstName = msg.chat.first_name
     val lastName = msg.chat.last_name
@@ -105,13 +133,14 @@ fun saveOrUpdateNewUser(msg: Message) {
         var user = collection.findOne(User::chatId eq chatId)
         if (user == null) {
             logger.info { "insert new user" }
-            user = User(chatId, username, firstName, lastName)
+            user = User(chatId, username, firstName, lastName, userId)
         } else {
             logger.info { "update existed user" }
             user.firstName = firstName
             user.lastName = lastName
             user.username = username
             user.updated = LocalDateTime.now(ZoneOffset.of("+03:00"))
+            user.userId = userId
         }
         collection.save(user)
     }
@@ -207,7 +236,7 @@ private fun addNewDebtor(bot: Bot, message: Message) {
 
 fun repay(bot: Bot, message: Message) {
     logger.info { "call repay method for ${message.chat.id}" }
-    val match = PATTERN_REPAY.toRegex().find(message.text!!)!!
+    val match = Regex(PATTERN_REPAY).find(message.text!!)!!
     val (name, sum) = match.destructured
     val text = try {
         val debtor = updateDebtor(name, sum, REPAY_VALUE, message.chat.id)
