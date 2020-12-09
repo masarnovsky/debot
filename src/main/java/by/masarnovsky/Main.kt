@@ -14,10 +14,10 @@ import java.time.format.DateTimeFormatter
 import java.util.*
 
 
-var token = ""
-var username = ""
-var databaseUrl = ""
-var database = ""
+lateinit var token: String
+lateinit var username: String
+lateinit var databaseUrl: String
+lateinit var database: String
 
 const val PATTERN_NEW_DEBTOR = "(?<name>[\\p{L}\\s]*) (?<sum>[0-9.,]+) (?<comment>[\\p{L}\\s-!?)(.,]*)"
 const val PATTERN_REPAY = "(?<name>[\\p{L}\\s]*) (?<sum>-[0-9.,]+)"
@@ -136,11 +136,13 @@ fun saveOrUpdateNewUser(msg: Message) {
             user = User(chatId, username, firstName, lastName, userId)
         } else {
             logger.info { "update existed user" }
-            user.firstName = firstName
-            user.lastName = lastName
-            user.username = username
-            user.updated = LocalDateTime.now(ZoneOffset.of("+03:00"))
-            user.userId = userId
+            user.apply {
+                this.firstName = firstName
+                this.lastName = lastName
+                this.username = username
+                this.updated = LocalDateTime.now(ZoneOffset.of("+03:00"))
+                this.userId = userId
+            }
         }
         collection.save(user)
     }
