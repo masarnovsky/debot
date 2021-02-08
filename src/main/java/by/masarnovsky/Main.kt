@@ -242,7 +242,9 @@ fun repay(bot: Bot, message: Message) {
     val (name, sum) = match.destructured
     val text = try {
         val debtor = updateDebtor(name, sum, REPAY_VALUE, message.chat.id)
-        "${debtor.name} вернул(а) ${sum.toInt() * -1} BYN и теперь " + if (debtor.totalAmount > BigDecimal.ZERO) "торчит ${debtor.totalAmount} BYN за: <b>${
+        "${debtor.name} вернул(а) ${
+            sum.toBigDecimal().multiply(BigDecimal(-1))
+        } BYN и теперь " + if (debtor.totalAmount > BigDecimal.ZERO) "торчит ${debtor.totalAmount} BYN за: <b>${
             formatDebts(
                 debtor.debts,
                 false
