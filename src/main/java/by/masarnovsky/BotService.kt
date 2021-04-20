@@ -1,101 +1,20 @@
 package by.masarnovsky
 
-import com.elbekD.bot.Bot
 import com.elbekD.bot.types.*
 import com.mongodb.BasicDBObject
 import com.mongodb.client.MongoDatabase
 import mu.KotlinLogging
 import org.litote.kmongo.*
-import java.io.FileInputStream
 import java.math.BigDecimal
 import java.time.LocalDateTime
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
-import java.util.*
-
-
-lateinit var token: String
-lateinit var username: String
-lateinit var databaseUrl: String
-lateinit var database: String
-
-const val PATTERN_NEW_DEBTOR = "(?<name>[\\p{L}\\s]*) (?<sum>[0-9.,]+) (?<comment>[\\p{L}\\s-!?)(.,]*)"
-const val PATTERN_REPAY = "(?<name>[\\p{L}\\s]*) (?<sum>-[0-9.,]+)"
-const val REPAY_VALUE = "Возврат суммы"
-
-const val USERS_COLLECTION = "users"
-const val DEBTS_COLLECTION = "debts"
 
 private val logger = KotlinLogging.logger {}
 
-fun loadProperties() {
-    if (System.getenv()["IS_PROD"].toString() != "null") {
-        logger.info { "setup prod environment" }
-        token = System.getenv()["BOT_TOKEN"].toString()
-        username = System.getenv()["BOT_USERNAME"].toString()
-        databaseUrl = System.getenv()["DATABASE_URL"].toString()
-        database = System.getenv()["DATABASE"].toString()
-    } else {
-        logger.info { "setup test environment" }
-        val properties = Properties()
-        val propertiesFile = System.getProperty("user.dir") + "\\test_env.properties"
-        val inputStream = FileInputStream(propertiesFile)
-        properties.load(inputStream)
-        token = properties.getProperty("BOT_TOKEN")
-        username = properties.getProperty("BOT_USERNAME")
-        databaseUrl = properties.getProperty("DATABASE_URL")
-        database = properties.getProperty("DATABASE")
-    }
-}
-
-fun main() {
-    loadProperties()
-    val bot = Bot.createPolling(username, token)
-
-    bot.onMessage { message ->
-        if (message.text != null && isStringMatchDebtPattern(message.text!!)) {
-            addNewDebtor(bot, message)
-        } else if (message.text != null && isStringMatchRepayPattern(message.text!!)) {
-            repay(bot, message)
-        } else {
-            mainMenu(message.chat.id, bot)
-        }
-    }
-
-    bot.onCommand("/start") { msg, _ ->
-        logger.info { "/start command was called" }
-        saveOrUpdateNewUser(msg)
-        mainMenu(msg.chat.id, bot)
-    }
-
-    bot.onCommand("/all") { msg, _ -> returnListOfDebtorsForChat(msg.chat.id, bot) }
-
-    bot.onCommand("/show") { msg, _ -> showPersonDebts(msg, bot) }
-
-    bot.onCommand("/delete") { msg, _ -> deletePerson(msg, bot) }
-
-    bot.onInlineQuery { inlineQuery ->
-        returnDebtorsForInlineQuery(inlineQuery, bot)
-    }
-
-    bot.onCallbackQuery { callback ->
-        val data = callback.data!!
-        val chatId = callback.message?.chat?.id!!
-
-        when (data) {
-            "callback_list" -> returnListOfDebtorsForChat(chatId, bot)
-            "delete_history_yes" -> deleteAllDebts(chatId, bot)
-            "delete_history_no" -> mainMenu(chatId, bot)
-            else -> returnListOfDebtorsForChat(chatId, bot)
-        }
-    }
-
-    bot.start()
-}
-
-fun returnDebtorsForInlineQuery(inlineQuery: InlineQuery, bot: Bot) {
-    logger.info { "call returnDebtorsForInlineQuery for ${inlineQuery.from.id}" }
-    val debtors = getDebtors(inlineQuery.from.id.toLong())
+fun returnDebtors(chatId: Long, queryId: String) {
+    logger.info { "call returnDebtors for $chatId with queryId=$queryId" }
+    val debtors = getDebtors(chatId)
 
     val queries = mutableListOf<InlineQueryResultArticle>()
     debtors.forEachIndexed { index, debtor ->
@@ -115,15 +34,15 @@ fun returnDebtorsForInlineQuery(inlineQuery: InlineQuery, bot: Bot) {
             )
         )
     }
-    bot.answerInlineQuery(inlineQuery.id, queries)
+    bot.answerInlineQuery(queryId, queries)
 }
 
-fun saveOrUpdateNewUser(msg: Message) {
-    val chatId = msg.chat.id
-    val userId = msg.from?.id
-    val username = msg.chat.username
-    val firstName = msg.chat.first_name
-    val lastName = msg.chat.last_name
+fun saveOrUpdateNewUser(message: Message) {
+    val chatId = message.chat.id
+    val userId = message.from?.id
+    val username = message.chat.username
+    val firstName = message.chat.first_name
+    val lastName = message.chat.last_name
     logger.info { "save or update method was added with parameters: $chatId, $username, $firstName, $lastName" }
 
     KMongo.createClient(databaseUrl).use { client ->
@@ -148,27 +67,27 @@ fun saveOrUpdateNewUser(msg: Message) {
     }
 }
 
-fun deletePerson(msg: Message, bot: Bot) {
-    logger.info { "call deletePerson for ${msg.chat.id}" }
-    val name = msg.text?.replace(Regex("/delete ?"), "")
+fun deletePerson(chatId: Long, text: String?) {
+    logger.info { "call deletePerson for $chatId" }
+    val name = text?.replace(Regex("/delete ?"), "")
     KMongo.createClient(databaseUrl).use { client ->
         val database: MongoDatabase = client.getDatabase(database)
         val collection = database.getCollection<Debtor>(DEBTS_COLLECTION)
         if (name?.isNotEmpty() == true) {
-            logger.info { "delete $name for ${msg.chat.id}" }
-            val whereQuery = BasicDBObject(mapOf("chatId" to msg.chat.id, "name" to name.toLowerCase()))
+            logger.info { "delete $name for $chatId" }
+            val whereQuery = BasicDBObject(mapOf("chatId" to chatId, "name" to name.toLowerCase()))
             val deletedCount = collection.deleteOne(whereQuery).deletedCount
             bot.sendMessage(
-                msg.chat.id,
+                chatId,
                 if (deletedCount > 0) "Информация о должнике $name была удалена" else "По такому имени ничего не найдено"
             )
         } else {
-            logger.info { "delete all debtors for ${msg.chat.id}" }
-            val yes = InlineKeyboardButton(text = "Да", callback_data = "delete_history_yes")
-            val no = InlineKeyboardButton(text = "Нет", callback_data = "delete_history_no")
+            logger.info { "delete all debtors for $chatId" }
+            val yes = InlineKeyboardButton(text = "Да", callback_data = DELETE_HISTORY_CALLBACK)
+            val no = InlineKeyboardButton(text = "Нет", callback_data = NOT_DELETE_HISTORY_CALLBACK)
             val keyboard = InlineKeyboardMarkup(listOf(listOf(yes, no)))
             bot.sendMessage(
-                msg.chat.id,
+                chatId,
                 "Вы точно хотите удалить <b>всех</b> должников?",
                 markup = keyboard,
                 parseMode = "HTML"
@@ -177,7 +96,7 @@ fun deletePerson(msg: Message, bot: Bot) {
     }
 }
 
-fun deleteAllDebts(chatId: Long, bot: Bot) {
+fun deleteAllDebts(chatId: Long) {
     logger.info { "call deleteAllDebts for $chatId" }
     KMongo.createClient(databaseUrl).use { client ->
         val database: MongoDatabase = client.getDatabase(database)
@@ -191,15 +110,15 @@ fun deleteAllDebts(chatId: Long, bot: Bot) {
     }
 }
 
-fun showPersonDebts(msg: Message, bot: Bot) {
-    logger.info { "call showPersonDebts for ${msg.chat.id}" }
-    val name = msg.text?.replace(Regex("/show ?"), "")
+fun showPersonDebts(chatId: Long, text: String?) {
+    logger.info { "call showPersonDebts for $chatId" }
+    val name = text?.replace(Regex("/show ?"), "")
     if (name?.isNotEmpty() == true) {
-        logger.info { "show $name debts for ${msg.chat.id}" }
+        logger.info { "show $name debts for $chatId" }
         KMongo.createClient(databaseUrl).use { client ->
             val database: MongoDatabase = client.getDatabase(database)
             val collection = database.getCollection<Debtor>(DEBTS_COLLECTION)
-            val whereQuery = BasicDBObject(mapOf("chatId" to msg.chat.id, "name" to name.toLowerCase()))
+            val whereQuery = BasicDBObject(mapOf("chatId" to chatId, "name" to name.toLowerCase()))
             val debtor = collection.findOne(whereQuery)
 
             if (debtor != null) {
@@ -213,35 +132,35 @@ fun showPersonDebts(msg: Message, bot: Bot) {
                             )
                         } |    ${debt.sum} за ${debt.comment}\n"
                     }
-                bot.sendMessage(msg.chat.id, result)
+                bot.sendMessage(chatId, result)
             } else {
-                bot.sendMessage(msg.chat.id, "По такому имени ничего не найдено")
+                bot.sendMessage(chatId, "По такому имени ничего не найдено")
             }
         }
     } else {
-        logger.info { "/show command without name. call returnListOfDebtorsForChat for ${msg.chat.id}" }
-        returnListOfDebtorsForChat(msg.chat.id, bot)
+        logger.info { "/show command without name. call returnListOfDebtorsForChat for $chatId" }
+        returnListOfDebtorsForChat(chatId)
     }
 }
 
-private fun addNewDebtor(bot: Bot, message: Message) {
-    logger.info { "call addNewDebtor method for ${message.chat.id}" }
-    val match = PATTERN_NEW_DEBTOR.toRegex().find(message.text!!)!!
+fun addNewDebtor(chatId: Long, text: String?) {
+    logger.info { "call addNewDebtor method for $chatId" }
+    val match = PATTERN_NEW_DEBTOR.toRegex().find(text!!)!!
     val (name, sum, comment) = match.destructured
-    val debtor = updateDebtor(name, sum, comment, message.chat.id)
+    val debtor = updateDebtor(name, sum, comment, chatId)
     bot.sendMessage(
-        message.chat.id,
+        chatId,
         "Теперь ${debtor.name} торчит тебе ${debtor.totalAmount} BYN за: <b>${formatDebts(debtor.debts, false)}</b>",
         parseMode = "HTML",
     )
 }
 
-fun repay(bot: Bot, message: Message) {
-    logger.info { "call repay method for ${message.chat.id}" }
-    val match = Regex(PATTERN_REPAY).find(message.text!!)!!
+fun repay(chatId: Long, text: String?) {
+    logger.info { "call repay method for $chatId" }
+    val match = Regex(PATTERN_REPAY).find(text!!)!!
     val (name, sum) = match.destructured
-    val text = try {
-        val debtor = updateDebtor(name, sum, REPAY_VALUE, message.chat.id)
+    val repayInfo = try {
+        val debtor = updateDebtor(name, sum, REPAY_VALUE, chatId)
         "${debtor.name} вернул(а) ${
             sum.toBigDecimal().multiply(BigDecimal(-1))
         } BYN и теперь " + if (debtor.totalAmount > BigDecimal.ZERO) "торчит ${debtor.totalAmount} BYN за: <b>${
@@ -254,8 +173,8 @@ fun repay(bot: Bot, message: Message) {
         "Введена неверная сумма, баланс не может быть отрицательным"
     }
     bot.sendMessage(
-        message.chat.id,
-        text,
+        chatId,
+        repayInfo,
         parseMode = "HTML",
     )
 }
@@ -291,7 +210,7 @@ fun updateDebtor(name: String, sumValue: String, comment: String, chatId: Long):
     }
 }
 
-private fun mainMenu(chatId: Long, bot: Bot) {
+fun mainMenu(chatId: Long) {
     logger.info { "main menu was called for $chatId" }
     val list = InlineKeyboardButton(text = "Список всех", callback_data = "callback_list")
     val keyboard = InlineKeyboardMarkup(listOf(listOf(list)))
@@ -303,7 +222,7 @@ private fun mainMenu(chatId: Long, bot: Bot) {
     )
 }
 
-fun returnListOfDebtorsForChat(chatId: Long, bot: Bot) {
+fun returnListOfDebtorsForChat(chatId: Long) {
     logger.info { "call returnListOfDebtorsForChat method for $chatId" }
     val debtors = getDebtors(chatId)
     val result = debtors.fold("") { result, debtor ->
@@ -346,12 +265,4 @@ fun getDebtors(chatId: Long): List<Debtor> {
         val whereQuery = BasicDBObject(mapOf("chatId" to chatId, "totalAmount" to BasicDBObject("\$gt", 0)))
         return collection.find(whereQuery).toList()
     }
-}
-
-fun isStringMatchDebtPattern(str: String): Boolean {
-    return Regex(PATTERN_NEW_DEBTOR) matches str
-}
-
-fun isStringMatchRepayPattern(str: String): Boolean {
-    return Regex(PATTERN_REPAY) matches str
 }
