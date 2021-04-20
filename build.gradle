@@ -22,7 +22,7 @@ dependencies {
 jar {
     manifest {
         attributes(
-                'Main-Class': 'by.masarnovsky.MainKt'
+                'Main-Class': 'by.masarnovsky.BotKt'
         )
     }
     from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
