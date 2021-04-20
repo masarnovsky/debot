@@ -1,6 +1,9 @@
 package by.masarnovsky
 
 import com.elbekD.bot.Bot
+import com.elbekD.bot.types.CallbackQuery
+import com.elbekD.bot.types.InlineQuery
+import com.elbekD.bot.types.Message
 import mu.KotlinLogging
 import java.io.FileInputStream
 import java.util.*
@@ -10,13 +13,6 @@ lateinit var token: String
 lateinit var username: String
 lateinit var databaseUrl: String
 lateinit var database: String
-
-const val PATTERN_NEW_DEBTOR = "(?<name>[\\p{L}\\s]*) (?<sum>[0-9.,]+) (?<comment>[\\p{L}\\s-!?)(.,]*)"
-const val PATTERN_REPAY = "(?<name>[\\p{L}\\s]*) (?<sum>-[0-9.,]+)"
-const val REPAY_VALUE = "Возврат суммы"
-
-const val USERS_COLLECTION = "users"
-const val DEBTS_COLLECTION = "debts"
 
 private val logger = KotlinLogging.logger {}
 
@@ -60,53 +56,96 @@ private fun setBehaviour() {
 }
 
 fun startCommand() {
-    bot.onCommand("/start") { msg, _ ->
+    bot.onCommand(START_COMMAND) { message, _ ->
         logger.info { "/start command was called" }
-        saveOrUpdateNewUser(msg)
-        mainMenu(msg.chat.id, bot)
+
+        val (chatId, _) = getChatIdAndTextFromMessage(message)
+
+        saveOrUpdateNewUser(message)
+        mainMenu(chatId)
     }
 }
 
 fun showAllCommand() {
-    bot.onCommand("/all") { msg, _ -> returnListOfDebtorsForChat(msg.chat.id, bot) }
+    bot.onCommand(ALL_COMMAND) { message, _ ->
+
+        val (chatId, _) = getChatIdAndTextFromMessage(message)
+        returnListOfDebtorsForChat(chatId)
+    }
 }
 
 fun showPersonDebtsCommand() {
-    bot.onCommand("/show") { msg, _ -> showPersonDebts(msg, bot) }
+    bot.onCommand(SHOW_COMMAND) { message, _ ->
+
+        val (chatId, text) = getChatIdAndTextFromMessage(message)
+        showPersonDebts(chatId, text)
+    }
 }
 
 fun deleteCommand() {
-    bot.onCommand("/delete") { msg, _ -> deletePerson(msg, bot) }
+    bot.onCommand(DELETE_COMMAND) { message, _ ->
+        val (chatId, text) = getChatIdAndTextFromMessage(message)
+        deletePerson(chatId, text)
+    }
 }
 
 fun onInlineQuery() {
     bot.onInlineQuery { inlineQuery ->
-        returnDebtorsForInlineQuery(inlineQuery, bot)
+
+        val (chatId, text) = getChatIdAndTextFromInlineQuery(inlineQuery)
+        returnDebtors(chatId, text!!)
     }
 }
 
 fun onCallbackQuery() {
     bot.onCallbackQuery { callback ->
-        val data = callback.data!!
-        val chatId = callback.message?.chat?.id!!
 
-        when (data) {
-            "callback_list" -> returnListOfDebtorsForChat(chatId, bot)
-            "delete_history_yes" -> deleteAllDebts(chatId, bot)
-            "delete_history_no" -> mainMenu(chatId, bot)
-            else -> returnListOfDebtorsForChat(chatId, bot)
+        val (chatId, text) = getChatIdAndTextFromCallbackQuery(callback)
+
+        println(callback)
+
+        when (text) {
+            DEBTORS_LIST_CALLBACK -> returnListOfDebtorsForChat(chatId)
+            DELETE_HISTORY_CALLBACK -> deleteAllDebts(chatId)
+            NOT_DELETE_HISTORY_CALLBACK -> mainMenu(chatId)
+            else -> returnListOfDebtorsForChat(chatId)
         }
     }
 }
 
 fun onMessage() {
     bot.onMessage { message ->
-        if (message.text != null && isStringMatchDebtPattern(message.text!!)) {
-            addNewDebtor(bot, message)
-        } else if (message.text != null && isStringMatchRepayPattern(message.text!!)) {
-            repay(bot, message)
+
+        val (chatId, text) = getChatIdAndTextFromMessage(message)
+
+        if (text != null && isStringMatchDebtPattern(text)) {
+            addNewDebtor(chatId, text)
+        } else if (text != null && isStringMatchRepayPattern(text)) {
+            repay(chatId, text)
         } else {
-            mainMenu(message.chat.id, bot)
+            mainMenu(chatId)
         }
     }
 }
+
+fun isStringMatchDebtPattern(str: String): Boolean {
+    return Regex(PATTERN_NEW_DEBTOR) matches str
+}
+
+fun isStringMatchRepayPattern(str: String): Boolean {
+    return Regex(PATTERN_REPAY) matches str
+}
+
+private fun getChatIdAndTextFromMessage(message: Message): ChatIdAndText {
+    return ChatIdAndText(message.chat.id, message.text)
+}
+
+private fun getChatIdAndTextFromCallbackQuery(callback: CallbackQuery): ChatIdAndText {
+    return ChatIdAndText(callback.message?.chat?.id!!, callback.data!!)
+}
+
+private fun getChatIdAndTextFromInlineQuery(inlineQuery: InlineQuery): ChatIdAndText {
+    return ChatIdAndText(inlineQuery.from.id.toLong(), inlineQuery.id)
+}
+
+private data class ChatIdAndText(val chatId: Long, val text: String?)
