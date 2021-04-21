@@ -96,18 +96,30 @@ fun deletePerson(chatId: Long, text: String?) {
     }
 }
 
-fun deleteAllDebts(chatId: Long) {
+fun deleteAllDebts(chatId: Long, messageId: Int) {
     logger.info { "call deleteAllDebts for $chatId" }
     KMongo.createClient(databaseUrl).use { client ->
         val database: MongoDatabase = client.getDatabase(database)
         val collection = database.getCollection<Debtor>(DEBTS_COLLECTION)
         val whereQuery = BasicDBObject(mapOf("chatId" to chatId))
         val deletedCount = collection.deleteMany(whereQuery).deletedCount
-        bot.sendMessage(
-            chatId,
-            if (deletedCount > 0) "Информация о $deletedCount должниках была удалена" else "Должников не найдено"
+        bot.editMessageReplyMarkup(chatId, messageId)
+        bot.editMessageText(
+            chatId = chatId,
+            messageId = messageId,
+            text = if (deletedCount > 0) "Информация о $deletedCount должниках была удалена" else "Должников не найдено"
         )
     }
+}
+
+fun notDeleteAllDebts(chatId: Long, messageId: Int) {
+    logger.info { "call notDeleteAllDebts for $chatId" }
+    bot.editMessageReplyMarkup(chatId, messageId)
+    bot.editMessageText(
+        chatId = chatId,
+        messageId = messageId,
+        text = "Вы решили не удалять историю"
+    )
 }
 
 fun showPersonDebts(chatId: Long, text: String?) {

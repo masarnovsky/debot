@@ -100,14 +100,12 @@ fun onInlineQuery() {
 fun onCallbackQuery() {
     bot.onCallbackQuery { callback ->
 
-        val (chatId, text) = getChatIdAndTextFromCallbackQuery(callback)
-
-        println(callback)
+        val (chatId, messageId, text) = getChatIdAndTextFromCallbackQuery(callback)
 
         when (text) {
             DEBTORS_LIST_CALLBACK -> returnListOfDebtorsForChat(chatId)
-            DELETE_HISTORY_CALLBACK -> deleteAllDebts(chatId)
-            NOT_DELETE_HISTORY_CALLBACK -> mainMenu(chatId)
+            DELETE_HISTORY_CALLBACK -> deleteAllDebts(chatId, messageId)
+            NOT_DELETE_HISTORY_CALLBACK -> notDeleteAllDebts(chatId, messageId)
             else -> returnListOfDebtorsForChat(chatId)
         }
     }
@@ -140,8 +138,8 @@ private fun getChatIdAndTextFromMessage(message: Message): ChatIdAndText {
     return ChatIdAndText(message.chat.id, message.text)
 }
 
-private fun getChatIdAndTextFromCallbackQuery(callback: CallbackQuery): ChatIdAndText {
-    return ChatIdAndText(callback.message?.chat?.id!!, callback.data!!)
+private fun getChatIdAndTextFromCallbackQuery(callback: CallbackQuery): ChatIdAndMessageIdAndText {
+    return ChatIdAndMessageIdAndText(callback.message?.chat?.id!!, callback.message?.message_id!!, callback.data!!)
 }
 
 private fun getChatIdAndTextFromInlineQuery(inlineQuery: InlineQuery): ChatIdAndText {
@@ -149,3 +147,5 @@ private fun getChatIdAndTextFromInlineQuery(inlineQuery: InlineQuery): ChatIdAnd
 }
 
 private data class ChatIdAndText(val chatId: Long, val text: String?)
+
+private data class ChatIdAndMessageIdAndText(val chatId: Long, val messageId: Int, val text: String?)
