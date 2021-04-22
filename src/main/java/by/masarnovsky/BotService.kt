@@ -2,6 +2,9 @@ package by.masarnovsky
 
 import com.elbekD.bot.types.*
 import com.mongodb.BasicDBObject
+import com.mongodb.ReadConcern
+import com.mongodb.WriteConcern
+import com.mongodb.client.MongoClient
 import com.mongodb.client.MongoDatabase
 import mu.KotlinLogging
 import org.litote.kmongo.*
@@ -45,7 +48,10 @@ fun saveOrUpdateNewUser(message: Message) {
     val lastName = message.chat.last_name
     logger.info { "save or update method was added with parameters: $chatId, $username, $firstName, $lastName" }
 
-    KMongo.createClient(databaseUrl).use { client ->
+    val client = createMongoClient()
+    client.startSession().use { clientSession ->
+        clientSession.startTransaction()
+
         val database: MongoDatabase = client.getDatabase(database)
         val collection = database.getCollection<User>(USERS_COLLECTION)
 
@@ -64,52 +70,69 @@ fun saveOrUpdateNewUser(message: Message) {
             }
         }
         collection.save(user)
+
+        clientSession.commitTransaction()
     }
 }
 
 fun deletePerson(chatId: Long, text: String?) {
     logger.info { "call deletePerson for $chatId" }
     val name = text?.replace(Regex("/delete ?"), "")
-    KMongo.createClient(databaseUrl).use { client ->
-        val database: MongoDatabase = client.getDatabase(database)
-        val collection = database.getCollection<Debtor>(DEBTS_COLLECTION)
-        if (name?.isNotEmpty() == true) {
+
+    if (name?.isNotEmpty() == true) {
+        val client = createMongoClient()
+        client.startSession().use { clientSession ->
+            clientSession.startTransaction()
+
             logger.info { "delete $name for $chatId" }
+            val database: MongoDatabase = client.getDatabase(database)
+            val collection = database.getCollection<Debtor>(DEBTS_COLLECTION)
             val whereQuery = BasicDBObject(mapOf("chatId" to chatId, "name" to name.toLowerCase()))
-            val deletedCount = collection.deleteOne(whereQuery).deletedCount
+            val deletedCount = collection.withWriteConcern(WriteConcern.MAJORITY).deleteOne(whereQuery).deletedCount
             bot.sendMessage(
                 chatId,
                 if (deletedCount > 0) "Информация о должнике $name была удалена" else "По такому имени ничего не найдено"
             )
-        } else {
-            logger.info { "delete all debtors for $chatId" }
-            val yes = InlineKeyboardButton(text = "Да", callback_data = DELETE_HISTORY_CALLBACK)
-            val no = InlineKeyboardButton(text = "Нет", callback_data = NOT_DELETE_HISTORY_CALLBACK)
-            val keyboard = InlineKeyboardMarkup(listOf(listOf(yes, no)))
-            bot.sendMessage(
-                chatId,
-                "Вы точно хотите удалить <b>всех</b> должников?",
-                markup = keyboard,
-                parseMode = "HTML"
-            )
+
+            clientSession.commitTransaction()
         }
+    } else {
+        logger.info { "delete all debtors for $chatId" }
+        val yes = InlineKeyboardButton(text = "Да", callback_data = DELETE_HISTORY_CALLBACK)
+        val no = InlineKeyboardButton(text = "Нет", callback_data = NOT_DELETE_HISTORY_CALLBACK)
+        val keyboard = InlineKeyboardMarkup(listOf(listOf(yes, no)))
+        bot.sendMessage(
+            chatId,
+            "Вы точно хотите удалить <b>всех</b> должников?",
+            markup = keyboard,
+            parseMode = "HTML"
+        )
     }
 }
 
 fun deleteAllDebts(chatId: Long, messageId: Int) {
     logger.info { "call deleteAllDebts for $chatId" }
-    KMongo.createClient(databaseUrl).use { client ->
+
+    val client = createMongoClient()
+    val deletedCount = client.startSession().use { clientSession ->
+        clientSession.startTransaction()
+
         val database: MongoDatabase = client.getDatabase(database)
         val collection = database.getCollection<Debtor>(DEBTS_COLLECTION)
         val whereQuery = BasicDBObject(mapOf("chatId" to chatId))
-        val deletedCount = collection.deleteMany(whereQuery).deletedCount
-        bot.editMessageReplyMarkup(chatId, messageId)
-        bot.editMessageText(
-            chatId = chatId,
-            messageId = messageId,
-            text = if (deletedCount > 0) "Информация о $deletedCount должниках была удалена" else "Должников не найдено"
-        )
+        val deletedCount = collection.withWriteConcern(WriteConcern.MAJORITY).deleteMany(whereQuery).deletedCount
+
+        clientSession.commitTransaction()
+
+        deletedCount
     }
+
+    bot.editMessageReplyMarkup(chatId, messageId)
+    bot.editMessageText(
+        chatId = chatId,
+        messageId = messageId,
+        text = if (deletedCount > 0) "Информация о $deletedCount должниках была удалена" else "Должников не найдено"
+    )
 }
 
 fun notDeleteAllDebts(chatId: Long, messageId: Int) {
@@ -127,27 +150,35 @@ fun showPersonDebts(chatId: Long, text: String?) {
     val name = text?.replace(Regex("/show ?"), "")
     if (name?.isNotEmpty() == true) {
         logger.info { "show $name debts for $chatId" }
-        KMongo.createClient(databaseUrl).use { client ->
-            val database: MongoDatabase = client.getDatabase(database)
+
+        val client = createMongoClient()
+        val debtor = client.startSession().use { clientSession ->
+            clientSession.startTransaction()
+
+            val database = client.getDatabase(database)
             val collection = database.getCollection<Debtor>(DEBTS_COLLECTION)
             val whereQuery = BasicDBObject(mapOf("chatId" to chatId, "name" to name.toLowerCase()))
-            val debtor = collection.findOne(whereQuery)
+            val debtor = collection.withReadConcern(ReadConcern.MAJORITY).findOne(whereQuery)
 
-            if (debtor != null) {
-                var result = "Текущий долг для ${debtor.name} равняется ${debtor.totalAmount}\nИстория долгов:\n"
-                debtor.debts.reversed()
-                    .forEach { debt ->
-                        result += "${
-                            debt.date.format(
-                                DateTimeFormatter
-                                    .ofPattern("yyyy-MM-dd HH:mm:ss")
-                            )
-                        } |    ${debt.sum} за ${debt.comment}\n"
-                    }
-                bot.sendMessage(chatId, result)
-            } else {
-                bot.sendMessage(chatId, "По такому имени ничего не найдено")
-            }
+            clientSession.commitTransaction()
+
+            debtor
+        }
+
+        if (debtor != null) {
+            var result = "Текущий долг для ${debtor.name} равняется ${debtor.totalAmount}\nИстория долгов:\n"
+            debtor.debts.reversed()
+                .forEach { debt ->
+                    result += "${
+                        debt.date.format(
+                            DateTimeFormatter
+                                .ofPattern("yyyy-MM-dd HH:mm:ss")
+                        )
+                    } |    ${debt.sum} за ${debt.comment}\n"
+                }
+            bot.sendMessage(chatId, result)
+        } else {
+            bot.sendMessage(chatId, "По такому имени ничего не найдено")
         }
     } else {
         logger.info { "/show command without name. call returnListOfDebtorsForChat for $chatId" }
@@ -155,11 +186,11 @@ fun showPersonDebts(chatId: Long, text: String?) {
     }
 }
 
-fun addNewDebtor(chatId: Long, text: String?) {
+fun addNewDebt(chatId: Long, text: String?) {
     logger.info { "call addNewDebtor method for $chatId" }
     val match = PATTERN_NEW_DEBTOR.toRegex().find(text!!)!!
     val (name, sum, comment) = match.destructured
-    val debtor = updateDebtor(name, sum, comment, chatId)
+    val debtor = updateDebt(name, sum, comment, chatId)
     bot.sendMessage(
         chatId,
         "Теперь ${debtor.name} торчит тебе ${debtor.totalAmount} BYN за: <b>${formatDebts(debtor.debts, false)}</b>",
@@ -172,7 +203,7 @@ fun repay(chatId: Long, text: String?) {
     val match = Regex(PATTERN_REPAY).find(text!!)!!
     val (name, sum) = match.destructured
     val repayInfo = try {
-        val debtor = updateDebtor(name, sum, REPAY_VALUE, chatId)
+        val debtor = updateDebt(name, sum, REPAY_VALUE, chatId)
         "${debtor.name} вернул(а) ${
             sum.toBigDecimal().multiply(BigDecimal(-1))
         } BYN и теперь " + if (debtor.totalAmount > BigDecimal.ZERO) "торчит ${debtor.totalAmount} BYN за: <b>${
@@ -191,17 +222,19 @@ fun repay(chatId: Long, text: String?) {
     )
 }
 
-fun updateDebtor(name: String, sumValue: String, comment: String, chatId: Long): Debtor {
+fun updateDebt(name: String, sumValue: String, comment: String, chatId: Long): Debtor {
     logger.info { "call updateDebtor method for $chatId" }
     val lowercaseName = name.toLowerCase()
     val sum = sumValue.toBigDecimal()
     val debt = Debt(sum, comment, LocalDateTime.now())
 
-    KMongo.createClient(databaseUrl).use { client ->
-        val database: MongoDatabase = client.getDatabase(database)
-        val collection = database.getCollection<Debtor>(DEBTS_COLLECTION)
+    val client = createMongoClient()
+    val debtor = client.startSession().use { clientSession ->
+        clientSession.startTransaction()
+
+        val collection = client.getDatabase(database).getCollection<Debtor>(DEBTS_COLLECTION)
         val whereQuery = BasicDBObject(mapOf("chatId" to chatId, "name" to lowercaseName))
-        var debtor = collection.findOne(whereQuery)
+        var debtor = collection.withReadConcern(ReadConcern.MAJORITY).findOne(clientSession, whereQuery)
 
         if (debtor != null) {
             logger.info { "update existed debtor for $chatId" }
@@ -214,12 +247,17 @@ fun updateDebtor(name: String, sumValue: String, comment: String, chatId: Long):
             debtor = Debtor(chatId, lowercaseName, sum, mutableListOf(debt))
         }
 
-        if (debtor.totalAmount < BigDecimal.ZERO) throw NegativeBalanceException("Total amount should be positive number")
-
-        collection.save(debtor)
-
-        return debtor
+        if (debtor.totalAmount < BigDecimal.ZERO) {
+            clientSession.commitTransaction()
+            throw NegativeBalanceException("Total amount should be positive number")
+        } else {
+            collection.withWriteConcern(WriteConcern.MAJORITY).save(clientSession, debtor)
+            clientSession.commitTransaction()
+        }
+        debtor
     }
+
+    return debtor
 }
 
 fun mainMenu(chatId: Long) {
@@ -271,10 +309,22 @@ fun formatDebts(debts: MutableList<Debt>, isFullDebtsOutput: Boolean = true): St
 
 fun getDebtors(chatId: Long): List<Debtor> {
     logger.info { "method getDebtors was called" }
-    KMongo.createClient(databaseUrl).use { client ->
+
+    val client = createMongoClient()
+    client.startSession().use { clientSession ->
+        clientSession.startTransaction()
+
         val db = client.getDatabase(database)
         val collection = db.getCollection<Debtor>(DEBTS_COLLECTION)
         val whereQuery = BasicDBObject(mapOf("chatId" to chatId, "totalAmount" to BasicDBObject("\$gt", 0)))
-        return collection.find(whereQuery).toList()
+        val debtors = collection.withReadConcern(ReadConcern.MAJORITY).find(whereQuery).toList()
+
+        clientSession.commitTransaction()
+
+        return debtors
     }
+}
+
+private fun createMongoClient(): MongoClient {
+    return KMongo.createClient(databaseUrl)
 }
