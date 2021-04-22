@@ -117,7 +117,6 @@ fun onMessage() {
 
         val (chatId, text) = getChatIdAndTextFromMessage(message)
         try {
-
             if (text != null && isStringMatchDebtPattern(text)) {
                 addNewDebt(chatId, text)
             } else if (text != null && isStringMatchRepayPattern(text)) {
@@ -126,6 +125,8 @@ fun onMessage() {
                 mainMenu(chatId)
             }
         } catch (ex: MongoCommandException) {
+            logger.error { ex }
+
             bot.sendMessage(
                 chatId,
                 "Ошибка базы данных. Пожалуйста, повторите запрос.",
