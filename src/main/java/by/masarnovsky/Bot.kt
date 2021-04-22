@@ -4,6 +4,7 @@ import com.elbekD.bot.Bot
 import com.elbekD.bot.types.CallbackQuery
 import com.elbekD.bot.types.InlineQuery
 import com.elbekD.bot.types.Message
+import com.mongodb.MongoCommandException
 import mu.KotlinLogging
 import java.io.FileInputStream
 import java.util.*
@@ -115,13 +116,21 @@ fun onMessage() {
     bot.onMessage { message ->
 
         val (chatId, text) = getChatIdAndTextFromMessage(message)
+        try {
 
-        if (text != null && isStringMatchDebtPattern(text)) {
-            addNewDebtor(chatId, text)
-        } else if (text != null && isStringMatchRepayPattern(text)) {
-            repay(chatId, text)
-        } else {
-            mainMenu(chatId)
+            if (text != null && isStringMatchDebtPattern(text)) {
+                addNewDebt(chatId, text)
+            } else if (text != null && isStringMatchRepayPattern(text)) {
+                repay(chatId, text)
+            } else {
+                mainMenu(chatId)
+            }
+        } catch (ex: MongoCommandException) {
+            bot.sendMessage(
+                chatId,
+                "Ошибка базы данных. Пожалуйста, повторите запрос.",
+                parseMode = "HTML",
+            )
         }
     }
 }
