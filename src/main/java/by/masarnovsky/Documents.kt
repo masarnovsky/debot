@@ -10,14 +10,14 @@ data class Debtor(
     val chatId: Long,
     val name: String,
     var totalAmount: BigDecimal,
-    var debts: MutableList<Debt>
+    var debts: MutableList<Debt>,
 ) {
     constructor(chatId: Long, name: String, totalAmount: BigDecimal, debts: MutableList<Debt>) : this(
         null,
         chatId,
         name,
         totalAmount,
-        debts
+        debts,
     )
 }
 
@@ -26,7 +26,7 @@ data class Debt(val sum: BigDecimal, val comment: String, val date: LocalDateTim
 }
 
 data class User(
-    val _id: ObjectId?,
+    var _id: ObjectId?,
     val chatId: Long,
     var username: String?,
     var firstName: String?,
@@ -49,4 +49,16 @@ data class User(
         LocalDateTime.now(ZoneOffset.of("+03:00")),
         userId
     )
+}
+
+fun User.copyInto(user: User?): User {
+    return if (user != null) {
+        user.firstName = this.firstName
+        user.lastName = this.lastName
+        user.username = this.username
+        user.updated = LocalDateTime.now(ZoneOffset.of("+03:00"))
+        user
+    } else {
+        this
+    }
 }

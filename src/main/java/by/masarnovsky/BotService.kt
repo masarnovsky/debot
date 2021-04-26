@@ -10,43 +10,21 @@ import mu.KotlinLogging
 import org.litote.kmongo.*
 import java.math.BigDecimal
 import java.time.LocalDateTime
-import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 
 private val logger = KotlinLogging.logger {}
 
 fun returnDebtors(chatId: Long, queryId: String) {
     logger.info { "call returnDebtors for $chatId with queryId=$queryId" }
-    val debtors = getDebtors(chatId)
 
-    val queries = mutableListOf<InlineQueryResultArticle>()
-    debtors.forEachIndexed { index, debtor ->
-        queries.add(
-            InlineQueryResultArticle(
-                index.toString(),
-                debtor.name,
-                InputTextMessageContent(
-                    "${debtor.name} торчит тебе ${debtor.totalAmount} BYN за: <b>${
-                        formatDebts(
-                            debtor.debts,
-                            false
-                        )
-                    }</b>", parse_mode = "HTML"
-                ),
-                description = "${debtor.name} торчит тебе ${debtor.totalAmount} BYN"
-            )
-        )
-    }
+    val queries = getDebtors(chatId).mapIndexed { index, debtor -> createInlineQueryResultArticle(index, debtor) }
     bot.answerInlineQuery(queryId, queries)
 }
 
 fun saveOrUpdateNewUser(message: Message) {
-    val chatId = message.chat.id
-    val userId = message.from?.id
-    val username = message.chat.username
-    val firstName = message.chat.first_name
-    val lastName = message.chat.last_name
-    logger.info { "save or update method was added with parameters: $chatId, $username, $firstName, $lastName" }
+    var user =
+        User(message.chat.id, message.chat.username, message.chat.first_name, message.chat.last_name, message.from?.id)
+    logger.info { "save or update user: $user" }
 
     val client = createMongoClient()
     client.startSession().use { clientSession ->
@@ -55,21 +33,10 @@ fun saveOrUpdateNewUser(message: Message) {
         val database: MongoDatabase = client.getDatabase(database)
         val collection = database.getCollection<User>(USERS_COLLECTION)
 
-        var user = collection.findOne(User::chatId eq chatId)
-        if (user == null) {
-            logger.info { "insert new user" }
-            user = User(chatId, username, firstName, lastName, userId)
-        } else {
-            logger.info { "update existed user" }
-            user.apply {
-                this.firstName = firstName
-                this.lastName = lastName
-                this.username = username
-                this.updated = LocalDateTime.now(ZoneOffset.of("+03:00"))
-                this.userId = userId
-            }
-        }
-        collection.save(user)
+        collection
+            .findOne { User::chatId eq user.chatId }
+            .let { user.copyInto(it) }
+            .apply { collection.save(this) }
 
         clientSession.commitTransaction()
     }
@@ -323,6 +290,27 @@ fun getDebtors(chatId: Long): List<Debtor> {
 
         return debtors
     }
+}
+
+fun createInlineQueryResultArticle(index: Int, debtor: Debtor): InlineQueryResultArticle {
+    return InlineQueryResultArticle(
+        id = index.toString(),
+        title = debtor.name,
+        input_message_content = createInputTextMessageContent(debtor),
+        description = "${debtor.name} торчит тебе ${debtor.totalAmount} BYN",
+    )
+}
+
+fun createInputTextMessageContent(debtor: Debtor): InputTextMessageContent {
+    return InputTextMessageContent(
+        message_text = "${debtor.name} торчит тебе ${debtor.totalAmount} BYN за: <b>${
+            formatDebts(
+                debtor.debts,
+                false
+            )
+        }</b>",
+        parse_mode = "HTML",
+    )
 }
 
 private fun createMongoClient(): MongoClient {
