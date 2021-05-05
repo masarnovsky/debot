@@ -148,7 +148,7 @@ fun showPersonDebts(chatId: Long, text: String?) {
             bot.sendMessage(chatId, "По такому имени ничего не найдено")
         }
     } else {
-        logger.info { "/show command without name. call returnListOfDebtorsForChat for $chatId" }
+        logger.info { "/show command without name. call sendListOfDebtors for $chatId" }
         sendListOfDebtors(chatId)
     }
 }
@@ -160,7 +160,7 @@ fun addNewDebt(chatId: Long, text: String?) {
     val debtor = updateDebt(name, sum, comment, chatId)
     bot.sendMessage(
         chatId,
-        "Теперь ${debtor.name} торчит тебе ${debtor.totalAmount} BYN за: <b>${formatDebts(debtor.debts, false)}</b>",
+        "Теперь ${debtor.name} торчит тебе ${debtor.totalAmount} BYN за: <b>${formatListOfDebts(debtor.debts)}</b>",
         parseMode = "HTML",
     )
 }
@@ -174,10 +174,7 @@ fun repay(chatId: Long, text: String?) {
         "${debtor.name} вернул(а) ${
             sum.toBigDecimal().multiply(BigDecimal(-1))
         } BYN и теперь " + if (debtor.totalAmount > BigDecimal.ZERO) "торчит ${debtor.totalAmount} BYN за: <b>${
-            formatDebts(
-                debtor.debts,
-                false
-            )
+            formatListOfDebts(debtor.debts)
         }</b>" else "ничего не должен"
     } catch (ex: NegativeBalanceException) {
         "Введена неверная сумма, баланс не может быть отрицательным"
@@ -240,7 +237,7 @@ fun mainMenu(chatId: Long) {
 }
 
 fun sendListOfDebtors(chatId: Long) {
-    logger.info { "call returnListOfDebtorsForChat method for $chatId" }
+    logger.info { "call sendListOfDebtors method for $chatId" }
     val debtors = getDebtors(chatId)
     val result = formingStringWithResultForAllCommand(debtors)
 
@@ -255,7 +252,7 @@ fun formingStringWithResultForAllCommand(debtors: List<Debtor>): String {
 }
 
 fun formatDebtorRecord(debtor: Debtor): String {
-    return "${debtor.name} ${debtor.totalAmount} BYN за: ${formatDebts(debtor.debts, false)}"
+    return "${debtor.name} ${debtor.totalAmount} BYN за: ${formatListOfDebts(debtor.debts)}"
 }
 
 fun formatDebtorTotalDebtSumRecord(debtors: List<Debtor>): String {
@@ -263,30 +260,21 @@ fun formatDebtorTotalDebtSumRecord(debtors: List<Debtor>): String {
     return "Общая сумма долгов равна $sumOfAllDebts BYN\n"
 }
 
-fun formatDebts(debts: MutableList<Debt>, isFullDebtsOutput: Boolean = true): String {
-    return if (isFullDebtsOutput) {
-        logger.info { "format debts output for all items" }
-        debts
-            .sortedByDescending { it.date }
-            .map { debt -> debt.comment }
-            .filter { it != REPAY_VALUE }
-            .joinToString(", ")
-    } else {
-        logger.info { "format debts output for last items" }
-        var totalAmount = BigDecimal.ZERO
+fun formatListOfDebts(debts: List<Debt>): String {
+    logger.info { "format debts output for last items" }
+    var totalAmount = BigDecimal.ZERO
 
-        debts
-            .sortedByDescending { it.date }
-            .filterIndexed { index, s ->
-                if (index == 0)
-                    totalAmount = s.totalAmount
-                if (s.comment != REPAY_VALUE)
-                    totalAmount -= s.sum
-                totalAmount + s.sum > BigDecimal.ZERO
-            }
-            .filter { it.comment != REPAY_VALUE }
-            .joinToString(", ") { debt -> debt.comment }
-    }
+    return debts
+        .sortedByDescending { it.date }
+        .filterIndexed { index, s ->
+            if (index == 0)
+                totalAmount = s.totalAmount
+            if (s.comment != REPAY_VALUE)
+                totalAmount -= s.sum
+            totalAmount + s.sum > BigDecimal.ZERO
+        }
+        .filter { it.comment != REPAY_VALUE }
+        .joinToString(", ") { debt -> debt.comment }
 }
 
 fun getDebtors(chatId: Long): List<Debtor> {
@@ -319,10 +307,7 @@ fun createInlineQueryResultArticle(index: Int, debtor: Debtor): InlineQueryResul
 fun createInputTextMessageContent(debtor: Debtor): InputTextMessageContent {
     return InputTextMessageContent(
         message_text = "${debtor.name} торчит тебе ${debtor.totalAmount} BYN за: <b>${
-            formatDebts(
-                debtor.debts,
-                false
-            )
+            formatListOfDebts(debtor.debts)
         }</b>",
         parse_mode = "HTML",
     )
