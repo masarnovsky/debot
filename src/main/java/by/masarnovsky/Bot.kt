@@ -14,6 +14,8 @@ lateinit var token: String
 lateinit var username: String
 lateinit var databaseUrl: String
 lateinit var database: String
+lateinit var ownerId: String
+var isProd = false
 
 private val logger = KotlinLogging.logger {}
 
@@ -24,15 +26,18 @@ fun main() {
     bot = Bot.createPolling(username, token)
     setBehaviour()
     bot.start()
+    if (isProd) bot.sendMessage(ownerId, "Deployed (っ◔◡◔)っ ❤")
 }
 
 private fun loadProperties() {
     if (System.getenv()["IS_PROD"].toString() != "null") {
         logger.info { "setup prod environment" }
+        isProd = true
         token = System.getenv()["BOT_TOKEN"].toString()
         username = System.getenv()["BOT_USERNAME"].toString()
         databaseUrl = System.getenv()["DATABASE_URL"].toString()
         database = System.getenv()["DATABASE"].toString()
+        ownerId = System.getenv()["OWNER_ID"].toString()
     } else {
         logger.info { "setup test environment" }
         val properties = Properties()
@@ -43,6 +48,7 @@ private fun loadProperties() {
         username = properties.getProperty("BOT_USERNAME")
         databaseUrl = properties.getProperty("DATABASE_URL")
         database = properties.getProperty("DATABASE")
+        ownerId = properties.getProperty("OWNER_ID")
     }
 }
 
