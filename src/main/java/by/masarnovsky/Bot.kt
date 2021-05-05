@@ -26,7 +26,7 @@ fun main() {
     bot = Bot.createPolling(username, token)
     setBehaviour()
     bot.start()
-    if (isProd) bot.sendMessage(ownerId, "Deployed (っ◔◡◔)っ ❤")
+    bot.sendMessage(ownerId, "Deployed (っ◔◡◔)っ \uD83E\uDD16")
 }
 
 private fun loadProperties() {
