@@ -22,7 +22,7 @@ fun returnDebtors(chatId: Long, queryId: String) {
 }
 
 fun saveOrUpdateNewUser(message: Message) {
-    var user =
+    val user =
         User(message.chat.id, message.chat.username, message.chat.first_name, message.chat.last_name, message.from?.id)
     logger.info { "save or update user: $user" }
 
@@ -149,7 +149,7 @@ fun showPersonDebts(chatId: Long, text: String?) {
         }
     } else {
         logger.info { "/show command without name. call returnListOfDebtorsForChat for $chatId" }
-        returnListOfDebtorsForChat(chatId)
+        sendListOfDebtors(chatId)
     }
 }
 
@@ -239,13 +239,28 @@ fun mainMenu(chatId: Long) {
     )
 }
 
-fun returnListOfDebtorsForChat(chatId: Long) {
+fun sendListOfDebtors(chatId: Long) {
     logger.info { "call returnListOfDebtorsForChat method for $chatId" }
     val debtors = getDebtors(chatId)
-    val result = debtors.fold("") { result, debtor ->
-        result + "${debtor.name} ${debtor.totalAmount} BYN за: ${formatDebts(debtor.debts, false)}\n"
-    }
-    bot.sendMessage(chatId, if (result.isNotEmpty()) result else "Пока что никто тебе не должен")
+    val result = formingStringWithResultForAllCommand(debtors)
+
+    bot.sendMessage(chatId, result)
+}
+
+fun formingStringWithResultForAllCommand(debtors: List<Debtor>): String {
+    val totalRecord = formatDebtorTotalDebtSumRecord(debtors)
+    val resultRecord = debtors.joinToString(separator = "\n") { debtor -> formatDebtorRecord(debtor) }
+
+    return totalRecord + resultRecord
+}
+
+fun formatDebtorRecord(debtor: Debtor): String {
+    return "${debtor.name} ${debtor.totalAmount} BYN за: ${formatDebts(debtor.debts, false)}"
+}
+
+fun formatDebtorTotalDebtSumRecord(debtors: List<Debtor>): String {
+    val sumOfAllDebts = debtors.sumOf { it.totalAmount }
+    return "Общая сумма долгов равна $sumOfAllDebts BYN\n"
 }
 
 fun formatDebts(debts: MutableList<Debt>, isFullDebtsOutput: Boolean = true): String {

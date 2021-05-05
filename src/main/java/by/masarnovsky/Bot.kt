@@ -71,7 +71,7 @@ fun showAllCommand() {
     bot.onCommand(ALL_COMMAND) { message, _ ->
 
         val (chatId, _) = getChatIdAndTextFromMessage(message)
-        returnListOfDebtorsForChat(chatId)
+        sendListOfDebtors(chatId)
     }
 }
 
@@ -104,10 +104,10 @@ fun onCallbackQuery() {
         val (chatId, messageId, text) = getChatIdAndTextFromCallbackQuery(callback)
 
         when (text) {
-            DEBTORS_LIST_CALLBACK -> returnListOfDebtorsForChat(chatId)
+            DEBTORS_LIST_CALLBACK -> sendListOfDebtors(chatId)
             DELETE_HISTORY_CALLBACK -> deleteAllDebts(chatId, messageId)
             NOT_DELETE_HISTORY_CALLBACK -> notDeleteAllDebts(chatId, messageId)
-            else -> returnListOfDebtorsForChat(chatId)
+            else -> sendListOfDebtors(chatId)
         }
     }
 }
