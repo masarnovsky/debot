@@ -1,5 +1,6 @@
 package by.masarnovsky
 
+import by.masarnovsky.service.saveOrUpdateNewUser
 import com.elbekD.bot.Bot
 import com.elbekD.bot.types.CallbackQuery
 import com.elbekD.bot.types.InlineQuery
@@ -15,6 +16,9 @@ lateinit var username: String
 lateinit var databaseUrl: String
 lateinit var database: String
 lateinit var ownerId: String
+lateinit var postgresUrl: String
+lateinit var postgresUser: String
+lateinit var postgresPassword: String
 var isProd = false
 
 private val logger = KotlinLogging.logger {}
@@ -38,6 +42,7 @@ private fun loadProperties() {
         databaseUrl = System.getenv()["DATABASE_URL"].toString()
         database = System.getenv()["DATABASE"].toString()
         ownerId = System.getenv()["OWNER_ID"].toString()
+        postgresUrl = System.getenv()["HEROKU_POSTGRESQL_GOLD_URL"].toString()
     } else {
         logger.info { "setup test environment" }
         val properties = Properties()
@@ -49,7 +54,20 @@ private fun loadProperties() {
         databaseUrl = properties.getProperty("DATABASE_URL")
         database = properties.getProperty("DATABASE")
         ownerId = properties.getProperty("OWNER_ID")
+        postgresUrl = properties.getProperty("HEROKU_POSTGRESQL_GOLD_URL")
     }
+    setupPostgresCredentials()
+}
+
+private fun setupPostgresCredentials() {
+    val match = POSTGRES_URL_PATTERN.toRegex().find(postgresUrl)!!
+    val (username, password) = match.destructured
+    postgresUser = username
+    postgresPassword = password
+    if (postgresUrl.startsWith("postgres://")) {
+        postgresUrl = postgresUrl.replaceFirst("postgres://", "jdbc:pgsql://")
+    }
+    postgresUrl += "?sslMode=Require"
 }
 
 private fun setBehaviour() {

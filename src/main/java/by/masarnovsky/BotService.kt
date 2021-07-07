@@ -21,26 +21,27 @@ fun returnDebtors(chatId: Long, queryId: String) {
     bot.answerInlineQuery(queryId, queries)
 }
 
-fun saveOrUpdateNewUser(message: Message) {
-    val user =
-        User(message.chat.id, message.chat.username, message.chat.first_name, message.chat.last_name, message.from?.id)
-    logger.info { "save or update user: $user" }
-
-    val client = createMongoClient()
-    client.startSession().use { clientSession ->
-        clientSession.startTransaction()
-
-        val database: MongoDatabase = client.getDatabase(database)
-        val collection = database.getCollection<User>(USERS_COLLECTION)
-
-        collection
-            .findOne { User::chatId eq user.chatId }
-            .let { user.copyInto(it) }
-            .apply { collection.save(this) }
-
-        clientSession.commitTransaction()
-    }
-}
+//@Deprecated(message = "old version for mongo")
+//fun saveOrUpdateNewUser(message: Message) {
+//    val user =
+//        UserM(message.chat.id, message.chat.username, message.chat.first_name, message.chat.last_name, message.from?.id)
+//    logger.info { "save or update user: $user" }
+//
+//    val client = createMongoClient()
+//    client.startSession().use { clientSession ->
+//        clientSession.startTransaction()
+//
+//        val database: MongoDatabase = client.getDatabase(database)
+//        val collection = database.getCollection<User>(USERS_COLLECTION)
+//
+//        collection
+//            .findOne { User::chatId eq user.chatId }
+//            .let { user.copyInto(it) }
+//            .apply { collection.save(this) }
+//
+//        clientSession.commitTransaction()
+//    }
+//}
 
 fun deletePerson(chatId: Long, text: String?) {
     logger.info { "call deletePerson for $chatId" }
@@ -53,7 +54,7 @@ fun deletePerson(chatId: Long, text: String?) {
 
             logger.info { "delete $name for $chatId" }
             val database: MongoDatabase = client.getDatabase(database)
-            val collection = database.getCollection<Debtor>(DEBTS_COLLECTION)
+            val collection = database.getCollection<DebtorM>(DEBTS_COLLECTION)
             val whereQuery = BasicDBObject(mapOf("chatId" to chatId, "name" to name.toLowerCase()))
             val deletedCount = collection.withWriteConcern(WriteConcern.MAJORITY).deleteOne(whereQuery).deletedCount
             bot.sendMessage(
@@ -85,7 +86,7 @@ fun deleteAllDebts(chatId: Long, messageId: Int) {
         clientSession.startTransaction()
 
         val database: MongoDatabase = client.getDatabase(database)
-        val collection = database.getCollection<Debtor>(DEBTS_COLLECTION)
+        val collection = database.getCollection<DebtorM>(DEBTS_COLLECTION)
         val whereQuery = BasicDBObject(mapOf("chatId" to chatId))
         val deletedCount = collection.withWriteConcern(WriteConcern.MAJORITY).deleteMany(whereQuery).deletedCount
 
@@ -123,7 +124,7 @@ fun showPersonDebts(chatId: Long, text: String?) {
             clientSession.startTransaction()
 
             val database = client.getDatabase(database)
-            val collection = database.getCollection<Debtor>(DEBTS_COLLECTION)
+            val collection = database.getCollection<DebtorM>(DEBTS_COLLECTION)
             val whereQuery = BasicDBObject(mapOf("chatId" to chatId, "name" to name.toLowerCase()))
             val debtor = collection.withReadConcern(ReadConcern.MAJORITY).findOne(whereQuery)
 
@@ -153,18 +154,6 @@ fun showPersonDebts(chatId: Long, text: String?) {
     }
 }
 
-fun addNewDebt(chatId: Long, text: String?) {
-    logger.info { "call addNewDebtor method for $chatId" }
-    val match = PATTERN_NEW_DEBTOR.toRegex().find(text!!)!!
-    val (name, sum, comment) = match.destructured
-    val debtor = updateDebt(name, sum, comment, chatId)
-    bot.sendMessage(
-        chatId,
-        "Теперь ${debtor.name} торчит тебе ${debtor.totalAmount} BYN за: <b>${formatListOfDebts(debtor.debts)}</b>",
-        parseMode = "HTML",
-    )
-}
-
 fun repay(chatId: Long, text: String?) {
     logger.info { "call repay method for $chatId" }
     val match = Regex(PATTERN_REPAY).find(text!!)!!
@@ -186,17 +175,30 @@ fun repay(chatId: Long, text: String?) {
     )
 }
 
-fun updateDebt(name: String, sumValue: String, comment: String, chatId: Long): Debtor {
+fun addNewDebt(chatId: Long, text: String?) {
+    logger.info { "call addNewDebtor method for $chatId" }
+    val match = PATTERN_NEW_DEBTOR.toRegex().find(text!!)!!
+    val (name, sum, comment) = match.destructured
+    val debtor = updateDebt(name, sum, comment, chatId)
+    bot.sendMessage(
+        chatId,
+        "Теперь ${debtor.name} торчит тебе ${debtor.totalAmount} BYN за: <b>${formatListOfDebts(debtor.debts)}</b>",
+        parseMode = "HTML",
+    )
+}
+
+@Deprecated(message = "old version for mongo")
+fun updateDebt(name: String, sumValue: String, comment: String, chatId: Long): DebtorM {
     logger.info { "call updateDebtor method for $chatId" }
     val lowercaseName = name.toLowerCase()
     val sum = sumValue.toBigDecimal()
-    val debt = Debt(sum, comment, LocalDateTime.now())
+    val debt = DebtM(sum, comment, LocalDateTime.now())
 
     val client = createMongoClient()
     val debtor = client.startSession().use { clientSession ->
         clientSession.startTransaction()
 
-        val collection = client.getDatabase(database).getCollection<Debtor>(DEBTS_COLLECTION)
+        val collection = client.getDatabase(database).getCollection<DebtorM>(DEBTS_COLLECTION)
         val whereQuery = BasicDBObject(mapOf("chatId" to chatId, "name" to lowercaseName))
         var debtor = collection.withReadConcern(ReadConcern.MAJORITY).findOne(clientSession, whereQuery)
 
@@ -208,7 +210,7 @@ fun updateDebt(name: String, sumValue: String, comment: String, chatId: Long): D
         } else {
             logger.info { "create new debtor for $chatId" }
             debt.totalAmount = sum
-            debtor = Debtor(chatId, lowercaseName, sum, mutableListOf(debt))
+            debtor = DebtorM(chatId, lowercaseName, sum, mutableListOf(debt))
         }
 
         if (debtor.totalAmount < BigDecimal.ZERO) {
@@ -244,23 +246,23 @@ fun sendListOfDebtors(chatId: Long) {
     bot.sendMessage(chatId, result)
 }
 
-fun formingStringWithResultForAllCommand(debtors: List<Debtor>): String {
+fun formingStringWithResultForAllCommand(debtors: List<DebtorM>): String {
     val totalRecord = formatDebtorTotalDebtSumRecord(debtors)
     val resultRecord = debtors.joinToString(separator = "\n") { debtor -> formatDebtorRecord(debtor) }
 
     return totalRecord + resultRecord
 }
 
-fun formatDebtorRecord(debtor: Debtor): String {
+fun formatDebtorRecord(debtor: DebtorM): String {
     return "${debtor.name} ${debtor.totalAmount} BYN за: ${formatListOfDebts(debtor.debts)}"
 }
 
-fun formatDebtorTotalDebtSumRecord(debtors: List<Debtor>): String {
+fun formatDebtorTotalDebtSumRecord(debtors: List<DebtorM>): String {
     val sumOfAllDebts = debtors.sumOf { it.totalAmount }
     return "Общая сумма долгов равна $sumOfAllDebts BYN\n"
 }
 
-fun formatListOfDebts(debts: List<Debt>): String {
+fun formatListOfDebts(debts: List<DebtM>): String {
     logger.info { "format debts output for last items" }
     var totalAmount = BigDecimal.ZERO
 
@@ -277,7 +279,7 @@ fun formatListOfDebts(debts: List<Debt>): String {
         .joinToString(", ") { debt -> debt.comment }
 }
 
-fun getDebtors(chatId: Long): List<Debtor> {
+fun getDebtors(chatId: Long): List<DebtorM> {
     logger.info { "method getDebtors was called" }
 
     val client = createMongoClient()
@@ -285,7 +287,7 @@ fun getDebtors(chatId: Long): List<Debtor> {
         clientSession.startTransaction()
 
         val db = client.getDatabase(database)
-        val collection = db.getCollection<Debtor>(DEBTS_COLLECTION)
+        val collection = db.getCollection<DebtorM>(DEBTS_COLLECTION)
         val whereQuery = BasicDBObject(mapOf("chatId" to chatId, "totalAmount" to BasicDBObject("\$gt", 0)))
         val debtors = collection.withReadConcern(ReadConcern.MAJORITY).find(whereQuery).toList()
 
@@ -295,7 +297,7 @@ fun getDebtors(chatId: Long): List<Debtor> {
     }
 }
 
-fun createInlineQueryResultArticle(index: Int, debtor: Debtor): InlineQueryResultArticle {
+fun createInlineQueryResultArticle(index: Int, debtor: DebtorM): InlineQueryResultArticle {
     return InlineQueryResultArticle(
         id = index.toString(),
         title = debtor.name,
@@ -304,7 +306,7 @@ fun createInlineQueryResultArticle(index: Int, debtor: Debtor): InlineQueryResul
     )
 }
 
-fun createInputTextMessageContent(debtor: Debtor): InputTextMessageContent {
+fun createInputTextMessageContent(debtor: DebtorM): InputTextMessageContent {
     return InputTextMessageContent(
         message_text = "${debtor.name} торчит тебе ${debtor.totalAmount} BYN за: <b>${
             formatListOfDebts(debtor.debts)
