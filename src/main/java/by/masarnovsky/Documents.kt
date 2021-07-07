@@ -29,7 +29,7 @@ data class Debtor(
     var id: Long?,
     val userId: Long,
     val name: String,
-    var totalAmount: BigDecimal,
+    var totalAmount: BigDecimal = BigDecimal.ZERO,
     var created: LocalDateTime = TimeService.now(),
     var updated: LocalDateTime = TimeService.now(),
 ) {

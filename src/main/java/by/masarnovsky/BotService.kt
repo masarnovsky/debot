@@ -21,28 +21,6 @@ fun returnDebtors(chatId: Long, queryId: String) {
     bot.answerInlineQuery(queryId, queries)
 }
 
-//@Deprecated(message = "old version for mongo")
-//fun saveOrUpdateNewUser(message: Message) {
-//    val user =
-//        UserM(message.chat.id, message.chat.username, message.chat.first_name, message.chat.last_name, message.from?.id)
-//    logger.info { "save or update user: $user" }
-//
-//    val client = createMongoClient()
-//    client.startSession().use { clientSession ->
-//        clientSession.startTransaction()
-//
-//        val database: MongoDatabase = client.getDatabase(database)
-//        val collection = database.getCollection<User>(USERS_COLLECTION)
-//
-//        collection
-//            .findOne { User::chatId eq user.chatId }
-//            .let { user.copyInto(it) }
-//            .apply { collection.save(this) }
-//
-//        clientSession.commitTransaction()
-//    }
-//}
-
 fun deletePerson(chatId: Long, text: String?) {
     logger.info { "call deletePerson for $chatId" }
     val name = text?.replace(Regex("/delete ?"), "")
@@ -154,41 +132,7 @@ fun showPersonDebts(chatId: Long, text: String?) {
     }
 }
 
-fun repay(chatId: Long, text: String?) {
-    logger.info { "call repay method for $chatId" }
-    val match = Regex(PATTERN_REPAY).find(text!!)!!
-    val (name, sum) = match.destructured
-    val repayInfo = try {
-        val debtor = updateDebt(name, sum, REPAY_VALUE, chatId)
-        "${debtor.name} вернул(а) ${
-            sum.toBigDecimal().multiply(BigDecimal(-1))
-        } BYN и теперь " + if (debtor.totalAmount > BigDecimal.ZERO) "торчит ${debtor.totalAmount} BYN за: <b>${
-            formatListOfDebts(debtor.debts)
-        }</b>" else "ничего не должен"
-    } catch (ex: NegativeBalanceException) {
-        "Введена неверная сумма, баланс не может быть отрицательным"
-    }
-    bot.sendMessage(
-        chatId,
-        repayInfo,
-        parseMode = "HTML",
-    )
-}
-
-//@Deprecated(message = "old")
-//fun addNewDebt(chatId: Long, text: String?) {
-//    logger.info { "call addNewDebtor method for $chatId" }
-//    val match = PATTERN_NEW_DEBTOR.toRegex().find(text!!)!!
-//    val (name, sum, comment) = match.destructured
-//    val debtor = updateDebt(name, sum, comment, chatId)
-//    bot.sendMessage(
-//        chatId,
-//        "Теперь ${debtor.name} торчит тебе ${debtor.totalAmount} BYN за: <b>${formatListOfDebts(debtor.debts)}</b>",
-//        parseMode = "HTML",
-//    )
-//}
-
-@Deprecated(message = "old version for mongo")
+@Deprecated(message = "old mongo version")
 fun updateDebt(name: String, sumValue: String, comment: String, chatId: Long): DebtorM {
     logger.info { "call updateDebtor method for $chatId" }
     val lowercaseName = name.toLowerCase()

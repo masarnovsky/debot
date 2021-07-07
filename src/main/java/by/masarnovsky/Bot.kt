@@ -1,6 +1,7 @@
 package by.masarnovsky
 
 import by.masarnovsky.service.newDebt
+import by.masarnovsky.service.repay
 import by.masarnovsky.service.saveOrUpdateNewUser
 import com.elbekD.bot.Bot
 import com.elbekD.bot.types.CallbackQuery

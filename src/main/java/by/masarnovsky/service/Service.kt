@@ -13,8 +13,8 @@ import java.math.BigDecimal
 private val logger = KotlinLogging.logger {}
 
 fun saveOrUpdateNewUser(message: Message): User {
-
-    val db = getDatabase()
+    logger.info { "call saveOrUpdateNewUser" }
+    connection()
 
     val user = transaction {
         addLogger(StdOutSqlLogger)
@@ -72,7 +72,7 @@ fun insertDebtor(debtor: Debtor): Long {
 }
 
 fun insertLog(log: Log): Long {
-    logger.info { "save new transaction for deb" }
+    logger.info { "save new log $log" }
     return Logs.insertAndGetId {
         it[debtorId] = log.debtorId
         it[credit] = log.credit
@@ -113,14 +113,25 @@ fun newDebt(chatId: Long, text: String) {
     val match = PATTERN_NEW_DEBTOR.toRegex().find(text)!!
     val (name, amount, comment) = match.destructured
     val (debtor, log) = addNewLogToDebtor(name, amount.toBigDecimal(), comment, chatId)
-    println(debtor)
-    println(log)
+
+    //sent msg to chat
+}
+
+fun repay(chatId: Long, text: String) {
+    logger.info { "call repay method for $chatId" }
+    val match = Regex(PATTERN_REPAY).find(text)!!
+    val (name, amount) = match.destructured
+    val (debtor, log) = addNewLogToDebtor(name, amount.toBigDecimal(), REPAY_VALUE, chatId)
+
+    //sent msg to chat
 }
 
 fun addNewLogToDebtor(name: String, amount: BigDecimal, comment: String, chatId: Long): Pair<Debtor, Log> {
-    val db = getDatabase()
+    logger.info { "call addNewLogToDebtor($name, $amount, $comment, $chatId)" }
+    connection()
 
     val pair = transaction {
+        addLogger(StdOutSqlLogger)
         var debtor = findDebtorByUserIdAndName(chatId, name)
         val (credit, debit) = calculateCreditAndDebit(amount)
 
@@ -151,7 +162,7 @@ fun findAllUsers(): List<User> {
     return Users.selectAll().map { User.fromRow(it) }
 }
 
-fun getDatabase(): Database {
+fun connection(): Database {
     return Database.connect(
         url = postgresUrl,
         driver = "com.impossibl.postgres.jdbc.PGDriver",
