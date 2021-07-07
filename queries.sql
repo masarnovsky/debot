@@ -3,8 +3,7 @@ DROP TABLE debtors;
 DROP TABLE users;
 
 CREATE TABLE users (
-  id SERIAL,
-  chat_id BIGINT NOT NULL,
+  id BIGINT UNIQUE NOT NULL,
   username VARCHAR NOT NULL,
   first_name VARCHAR,
   last_name VARCHAR,
@@ -18,7 +17,6 @@ CREATE TABLE users (
 CREATE TABLE debtors (
   id SERIAL,
   user_id BIGINT NOT NULL,
-  chat_id BIGINT NOT NULL,
   name VARCHAR NOT NULL,
   total_amount DECIMAL NOT NULL,
   created TIMESTAMP NOT NULL,

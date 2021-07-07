@@ -30,8 +30,8 @@ data class Debtor(
     val userId: Long,
     val name: String,
     var totalAmount: BigDecimal,
-    var created: LocalDateTime,
-    var updated: LocalDateTime,
+    var created: LocalDateTime = TimeService.now(),
+    var updated: LocalDateTime = TimeService.now(),
 ) {
     constructor(userId: Long, name: String, totalAmount: BigDecimal) : this(
         null,
@@ -78,52 +78,48 @@ data class Log(
 }
 
 data class User(
-    var id: Long?,
     val chatId: Long,
     var username: String?,
     var firstName: String?,
     var lastName: String?,
-    val created: LocalDateTime,
-    var updated: LocalDateTime,
-    val defaultLang: String,
-    val defaultCurrency: String,
+    val created: LocalDateTime = TimeService.now(),
+    var updated: LocalDateTime = TimeService.now(),
+    val defaultLang: String = "RU",
+    val defaultCurrency: String = "BYN",
 ) {
-    constructor(
-        chatId: Long, username: String?, firstName: String?,
-        lastName: String?,
-    ) : this(
-        null,
-        chatId,
-        username,
-        firstName,
-        lastName,
-        TimeService.now(),
-        TimeService.now(),
-        "RU",
-        "BYN",
-    )
+//    constructor(
+//        chatId: Long, username: String?, firstName: String?,
+//        lastName: String?,
+//    ) : this(
+//        chatId,
+//        username,
+//        firstName,
+//        lastName,
+//        TimeService.now(),
+//        TimeService.now(),
+//        "RU",
+//        "BYN",
+//    )
 
-    constructor(
-        id: Long, chatId: Long, username: String?,
-        firstName: String?, lastName: String?,
-        created: LocalDateTime, updated: LocalDateTime,
-    ) : this(
-        id,
-        chatId,
-        username,
-        firstName,
-        lastName,
-        created,
-        updated,
-        "RU",
-        "BYN",
-    )
+//    constructor(
+//        chatId: Long, username: String?,
+//        firstName: String?, lastName: String?,
+//        created: LocalDateTime, updated: LocalDateTime,
+//    ) : this(
+//        chatId,
+//        username,
+//        firstName,
+//        lastName,
+//        created,
+//        updated,
+//        "RU",
+//        "BYN",
+//    )
 
     companion object {
 
         fun fromRow(resultRow: ResultRow) = User(
-            id = resultRow[Users.id].value,
-            chatId = resultRow[Users.chatId],
+            chatId = resultRow[Users.id].value,
             username = resultRow[Users.username],
             firstName = resultRow[Users.firstName],
             lastName = resultRow[Users.lastName],

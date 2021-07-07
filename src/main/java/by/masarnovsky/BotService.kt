@@ -175,17 +175,18 @@ fun repay(chatId: Long, text: String?) {
     )
 }
 
-fun addNewDebt(chatId: Long, text: String?) {
-    logger.info { "call addNewDebtor method for $chatId" }
-    val match = PATTERN_NEW_DEBTOR.toRegex().find(text!!)!!
-    val (name, sum, comment) = match.destructured
-    val debtor = updateDebt(name, sum, comment, chatId)
-    bot.sendMessage(
-        chatId,
-        "Теперь ${debtor.name} торчит тебе ${debtor.totalAmount} BYN за: <b>${formatListOfDebts(debtor.debts)}</b>",
-        parseMode = "HTML",
-    )
-}
+//@Deprecated(message = "old")
+//fun addNewDebt(chatId: Long, text: String?) {
+//    logger.info { "call addNewDebtor method for $chatId" }
+//    val match = PATTERN_NEW_DEBTOR.toRegex().find(text!!)!!
+//    val (name, sum, comment) = match.destructured
+//    val debtor = updateDebt(name, sum, comment, chatId)
+//    bot.sendMessage(
+//        chatId,
+//        "Теперь ${debtor.name} торчит тебе ${debtor.totalAmount} BYN за: <b>${formatListOfDebts(debtor.debts)}</b>",
+//        parseMode = "HTML",
+//    )
+//}
 
 @Deprecated(message = "old version for mongo")
 fun updateDebt(name: String, sumValue: String, comment: String, chatId: Long): DebtorM {

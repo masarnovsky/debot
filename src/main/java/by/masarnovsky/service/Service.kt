@@ -12,31 +12,36 @@ import java.math.BigDecimal
 
 private val logger = KotlinLogging.logger {}
 
-fun saveOrUpdateNewUser(message: Message) {
+fun saveOrUpdateNewUser(message: Message): User {
 
     val db = getDatabase()
 
-    transaction {
+    val user = transaction {
         addLogger(StdOutSqlLogger)
 
-        val user = findUserByChatId(message.chat.id)
+        var user = findUserByChatId(message.chat.id)
         if (user != null) {
             updateUser(user)
         } else {
-            insertUser(User.fromMessage(message))
+            user = User.fromMessage(message)
+            insertUser(user)
         }
+
+        return@transaction user
     }
+
+    return user
 }
 
 fun findUserByChatId(chatId: Long): User? {
     logger.info { "find user by chatId:$chatId" }
-    return Users.select { Users.chatId eq chatId }.firstOrNull()?.let { User.fromRow(it) }
+    return Users.select { Users.id eq chatId }.firstOrNull()?.let { User.fromRow(it) }
 }
 
-fun findDebtorByUserIdAndName(userId: Long, name: String): Debtor? {
-    logger.info { "find debtor with name $name for user $userId" }
+fun findDebtorByUserIdAndName(chatId: Long, name: String): Debtor? {
+    logger.info { "find debtor with name $name for user $chatId" }
     return Debtors
-        .select { (Debtors.userId eq userId) and (Debtors.name eq name) }
+        .select { (Debtors.userId eq chatId) and (Debtors.name eq name) }
         .firstOrNull()
         ?.let { Debtor.fromRow(it) }
 }
@@ -44,7 +49,7 @@ fun findDebtorByUserIdAndName(userId: Long, name: String): Debtor? {
 fun insertUser(user: User): Long {
     logger.info { "save new user $user" }
     return Users.insertAndGetId {
-        it[chatId] = user.chatId
+        it[id] = user.chatId
         it[username] = user.username
         it[firstName] = user.firstName
         it[lastName] = user.lastName
@@ -61,6 +66,8 @@ fun insertDebtor(debtor: Debtor): Long {
         it[userId] = debtor.userId
         it[name] = debtor.name
         it[totalAmount] = debtor.totalAmount
+        it[created] = debtor.created
+        it[updated] = debtor.updated
     }.value
 }
 
@@ -79,8 +86,8 @@ fun insertLog(log: Log): Long {
 
 fun updateUser(user: User) {
     logger.info { "update user $user" }
-    Users.update({ Users.id eq user.id }) {
-        it[chatId] = user.chatId
+    Users.update({ Users.id eq user.chatId }) {
+        it[id] = user.chatId
         it[username] = user.username
         it[firstName] = user.firstName
         it[lastName] = user.lastName
@@ -101,29 +108,37 @@ fun updateDebtor(debtor: Debtor) {
     }
 }
 
-fun addNewDebt(chatId: Long, text: String) {
+fun newDebt(chatId: Long, text: String) {
     logger.info { "call addNewDebtor method for $chatId" }
     val match = PATTERN_NEW_DEBTOR.toRegex().find(text)!!
     val (name, amount, comment) = match.destructured
-//    addNewLogToDebtor(name, amount, comment)
+    val (debtor, log) = addNewLogToDebtor(name, amount.toBigDecimal(), comment, chatId)
+    println(debtor)
+    println(log)
 }
 
-fun addNewLogToDebtor(name: String, amount: BigDecimal, comment: String, userId: Long): Pair<Debtor, Log> {
-    var debtor = findDebtorByUserIdAndName(userId, name)
-    val (credit, debit) = calculateCreditAndDebit(amount)
+fun addNewLogToDebtor(name: String, amount: BigDecimal, comment: String, chatId: Long): Pair<Debtor, Log> {
+    val db = getDatabase()
 
-    if (debtor == null) {
-        debtor = Debtor(userId, name, amount)
-        debtor.id = insertDebtor(debtor)
-    } else {
-        debtor.totalAmount += amount
-        updateDebtor(debtor)
+    val pair = transaction {
+        var debtor = findDebtorByUserIdAndName(chatId, name)
+        val (credit, debit) = calculateCreditAndDebit(amount)
+
+        if (debtor == null) {
+            debtor = Debtor(chatId, name, amount)
+            debtor.id = insertDebtor(debtor)
+        } else {
+            debtor.totalAmount += amount
+            updateDebtor(debtor)
+        }
+
+        val log = Log(debtor.id!!, credit, debit, comment)
+        insertLog(log)
+
+        return@transaction Pair(debtor, log)
     }
 
-    val log = Log(debtor.id!!, credit, debit, comment)
-    insertLog(log)
-
-    return Pair(debtor, log)
+    return pair
 }
 
 fun calculateCreditAndDebit(amount: BigDecimal): Pair<BigDecimal, BigDecimal> {

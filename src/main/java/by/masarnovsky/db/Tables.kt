@@ -1,10 +1,17 @@
 package by.masarnovsky.db
 
+import org.jetbrains.exposed.dao.id.EntityID
+import org.jetbrains.exposed.dao.id.IdTable
 import org.jetbrains.exposed.dao.id.LongIdTable
+import org.jetbrains.exposed.sql.Column
 import org.jetbrains.exposed.sql.`java-time`.datetime
 
-object Users : LongIdTable() {
-    val chatId = long("chat_id")
+open class ChatIdTable(name: String = "", columnName: String = "id") : IdTable<Long>(name) {
+    override val id: Column<EntityID<Long>> = long(columnName).entityId()
+    override val primaryKey by lazy { super.primaryKey ?: PrimaryKey(id) }
+}
+
+object Users : ChatIdTable() {
     val username = varchar("username", 200).nullable()
     val firstName = varchar("first_name", 200).nullable()
     val lastName = varchar("last_name", 200).nullable()

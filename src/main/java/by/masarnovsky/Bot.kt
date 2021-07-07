@@ -1,5 +1,6 @@
 package by.masarnovsky
 
+import by.masarnovsky.service.newDebt
 import by.masarnovsky.service.saveOrUpdateNewUser
 import com.elbekD.bot.Bot
 import com.elbekD.bot.types.CallbackQuery
@@ -142,7 +143,7 @@ fun onMessage() {
         val (chatId, text) = getChatIdAndTextFromMessage(message)
         try {
             if (text != null && isStringMatchDebtPattern(text)) {
-                addNewDebt(chatId, text)
+                newDebt(chatId, text)
             } else if (text != null && isStringMatchRepayPattern(text)) {
                 repay(chatId, text)
             } else {
