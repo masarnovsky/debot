@@ -4,6 +4,7 @@ import org.jetbrains.exposed.dao.id.EntityID
 import org.jetbrains.exposed.dao.id.IdTable
 import org.jetbrains.exposed.dao.id.LongIdTable
 import org.jetbrains.exposed.sql.Column
+import org.jetbrains.exposed.sql.ReferenceOption
 import org.jetbrains.exposed.sql.`java-time`.datetime
 
 open class ChatIdTable(name: String = "", columnName: String = "id") : IdTable<Long>(name) {
@@ -32,7 +33,7 @@ object Debtors : LongIdTable() {
 }
 
 object Logs : LongIdTable() {
-    val debtorId = reference("debtor_id", Debtors)
+    val debtorId = reference("debtor_id", Debtors, ReferenceOption.CASCADE)
     val credit = decimal("credit", 19, 4)
     val debit = decimal("debit", 19, 4)
     val created = datetime("created")

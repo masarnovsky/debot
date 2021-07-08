@@ -45,6 +45,8 @@ data class Debtor(
             created = resultRow[Debtors.created],
             updated = resultRow[Debtors.updated],
         )
+
+        fun totalAmount(debtors: Set<Debtor>): BigDecimal = debtors.sumOf { it.totalAmount }
     }
 }
 

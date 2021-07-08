@@ -1,95 +1,20 @@
 package by.masarnovsky
 
-import com.elbekD.bot.types.*
+import by.masarnovsky.service.sendListOfDebtors
+import com.elbekD.bot.types.InlineKeyboardButton
+import com.elbekD.bot.types.InlineKeyboardMarkup
 import com.mongodb.BasicDBObject
 import com.mongodb.ReadConcern
 import com.mongodb.WriteConcern
 import com.mongodb.client.MongoClient
 import com.mongodb.client.MongoDatabase
 import mu.KotlinLogging
-import org.litote.kmongo.*
-import java.math.BigDecimal
-import java.time.LocalDateTime
+import org.litote.kmongo.KMongo
+import org.litote.kmongo.findOne
+import org.litote.kmongo.getCollection
 import java.time.format.DateTimeFormatter
 
 private val logger = KotlinLogging.logger {}
-
-fun returnDebtors(chatId: Long, queryId: String) {
-    logger.info { "call returnDebtors for $chatId with queryId=$queryId" }
-
-    val queries = getDebtors(chatId).mapIndexed { index, debtor -> createInlineQueryResultArticle(index, debtor) }
-    bot.answerInlineQuery(queryId, queries)
-}
-
-fun deletePerson(chatId: Long, text: String?) {
-    logger.info { "call deletePerson for $chatId" }
-    val name = text?.replace(Regex("/delete ?"), "")
-
-    if (name?.isNotEmpty() == true) {
-        val client = createMongoClient()
-        client.startSession().use { clientSession ->
-            clientSession.startTransaction()
-
-            logger.info { "delete $name for $chatId" }
-            val database: MongoDatabase = client.getDatabase(database)
-            val collection = database.getCollection<DebtorM>(DEBTS_COLLECTION)
-            val whereQuery = BasicDBObject(mapOf("chatId" to chatId, "name" to name.toLowerCase()))
-            val deletedCount = collection.withWriteConcern(WriteConcern.MAJORITY).deleteOne(whereQuery).deletedCount
-            bot.sendMessage(
-                chatId,
-                if (deletedCount > 0) "Информация о должнике $name была удалена" else "По такому имени ничего не найдено"
-            )
-
-            clientSession.commitTransaction()
-        }
-    } else {
-        logger.info { "delete all debtors for $chatId" }
-        val yes = InlineKeyboardButton(text = "Да", callback_data = DELETE_HISTORY_CALLBACK)
-        val no = InlineKeyboardButton(text = "Нет", callback_data = NOT_DELETE_HISTORY_CALLBACK)
-        val keyboard = InlineKeyboardMarkup(listOf(listOf(yes, no)))
-        bot.sendMessage(
-            chatId,
-            "Вы точно хотите удалить <b>всех</b> должников?",
-            markup = keyboard,
-            parseMode = "HTML"
-        )
-    }
-}
-
-fun deleteAllDebts(chatId: Long, messageId: Int) {
-    logger.info { "call deleteAllDebts for $chatId" }
-
-    val client = createMongoClient()
-    val deletedCount = client.startSession().use { clientSession ->
-        clientSession.startTransaction()
-
-        val database: MongoDatabase = client.getDatabase(database)
-        val collection = database.getCollection<DebtorM>(DEBTS_COLLECTION)
-        val whereQuery = BasicDBObject(mapOf("chatId" to chatId))
-        val deletedCount = collection.withWriteConcern(WriteConcern.MAJORITY).deleteMany(whereQuery).deletedCount
-
-        clientSession.commitTransaction()
-
-        deletedCount
-    }
-
-    bot.editMessageReplyMarkup(chatId, messageId)
-    bot.editMessageText(
-        chatId = chatId,
-        messageId = messageId,
-        text = if (deletedCount > 0) "Информация о $deletedCount должниках была удалена" else "Должников не найдено"
-    )
-}
-
-fun notDeleteAllDebts(chatId: Long, messageId: Int) {
-    logger.info { "call notDeleteAllDebts for $chatId" }
-    bot.editMessageReplyMarkup(chatId, messageId)
-    bot.editMessageText(
-        chatId = chatId,
-        messageId = messageId,
-        text = "Вы решили не удалять историю"
-    )
-}
 
 fun showPersonDebts(chatId: Long, text: String?) {
     logger.info { "call showPersonDebts for $chatId" }
@@ -132,96 +57,7 @@ fun showPersonDebts(chatId: Long, text: String?) {
     }
 }
 
-fun mainMenu(chatId: Long) {
-    logger.info { "main menu was called for $chatId" }
-    val list = InlineKeyboardButton(text = "Список всех", callback_data = "callback_list")
-    val keyboard = InlineKeyboardMarkup(listOf(listOf(list)))
-    bot.sendMessage(
-        chatId,
-        "Добавляй должника в таком формате: \n<b>имя 66.6 комментарий</b> \nЧтобы вычесть сумму долга: \n<b>имя -97</b> \nКнопочка чтобы посмотреть всех",
-        markup = keyboard,
-        parseMode = "HTML"
-    )
-}
-
-fun sendListOfDebtors(chatId: Long) {
-    logger.info { "call sendListOfDebtors method for $chatId" }
-    val debtors = getDebtors(chatId)
-    val result = formingStringWithResultForAllCommand(debtors)
-
-    bot.sendMessage(chatId, result)
-}
-
-fun formingStringWithResultForAllCommand(debtors: List<DebtorM>): String {
-    val totalRecord = formatDebtorTotalDebtSumRecord(debtors)
-    val resultRecord = debtors.joinToString(separator = "\n") { debtor -> formatDebtorRecord(debtor) }
-
-    return totalRecord + resultRecord
-}
-
-fun formatDebtorRecord(debtor: DebtorM): String { // todo: next
-    return "${debtor.name} ${debtor.totalAmount} BYN за: ${formatListOfDebts(debtor.debts)}"
-}
-
-fun formatDebtorTotalDebtSumRecord(debtors: List<DebtorM>): String {
-    val sumOfAllDebts = debtors.sumOf { it.totalAmount }
-    return "Общая сумма долгов равна $sumOfAllDebts BYN\n"
-}
-
-fun formatListOfDebts(debts: List<DebtM>): String {
-    logger.info { "format debts output for last items" }
-    var totalAmount = BigDecimal.ZERO
-
-    return debts
-        .sortedByDescending { it.date }
-        .filterIndexed { index, s ->
-            if (index == 0)
-                totalAmount = s.totalAmount
-            if (s.comment != REPAY_VALUE)
-                totalAmount -= s.sum
-            totalAmount + s.sum > BigDecimal.ZERO
-        }
-        .filter { it.comment != REPAY_VALUE }
-        .joinToString(", ") { debt -> debt.comment }
-}
-
 @Deprecated(message = "old")
-fun getDebtors(chatId: Long): List<DebtorM> {
-    logger.info { "method getDebtors was called" }
-
-    val client = createMongoClient()
-    client.startSession().use { clientSession ->
-        clientSession.startTransaction()
-
-        val db = client.getDatabase(database)
-        val collection = db.getCollection<DebtorM>(DEBTS_COLLECTION)
-        val whereQuery = BasicDBObject(mapOf("chatId" to chatId, "totalAmount" to BasicDBObject("\$gt", 0)))
-        val debtors = collection.withReadConcern(ReadConcern.MAJORITY).find(whereQuery).toList()
-
-        clientSession.commitTransaction()
-
-        return debtors
-    }
-}
-
-fun createInlineQueryResultArticle(index: Int, debtor: DebtorM): InlineQueryResultArticle {
-    return InlineQueryResultArticle(
-        id = index.toString(),
-        title = debtor.name,
-        input_message_content = createInputTextMessageContent(debtor),
-        description = "${debtor.name} торчит тебе ${debtor.totalAmount} BYN",
-    )
-}
-
-fun createInputTextMessageContent(debtor: DebtorM): InputTextMessageContent {
-    return InputTextMessageContent(
-        message_text = "${debtor.name} торчит тебе ${debtor.totalAmount} BYN за: <b>${
-            formatListOfDebts(debtor.debts)
-        }</b>",
-        parse_mode = "HTML",
-    )
-}
-
 private fun createMongoClient(): MongoClient {
     return KMongo.createClient(databaseUrl)
 }

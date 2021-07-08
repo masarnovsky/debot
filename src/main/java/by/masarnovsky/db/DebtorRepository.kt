@@ -3,10 +3,7 @@ package by.masarnovsky.db
 import by.masarnovsky.Debtor
 import by.masarnovsky.service.TimeService
 import mu.KotlinLogging
-import org.jetbrains.exposed.sql.and
-import org.jetbrains.exposed.sql.insertAndGetId
-import org.jetbrains.exposed.sql.select
-import org.jetbrains.exposed.sql.update
+import org.jetbrains.exposed.sql.*
 
 private val logger = KotlinLogging.logger {}
 
@@ -43,4 +40,12 @@ fun updateDebtor(debtor: Debtor) {
 fun findDebtorsForUser(chatId: Long): List<Debtor> {
     logger.info { "find all debtor for user:$chatId" }
     return Debtors.select { Debtors.userId eq chatId }.map { Debtor.fromRow(it) }
+}
+
+fun deleteAllDebtorsForUser(chatId: Long): Int {
+    return Debtors.deleteWhere { Debtors.userId eq chatId }
+}
+
+fun deleteDebtorForUserByName(chatId: Long, name: String): Int {
+    return Debtors.deleteWhere { (Debtors.userId eq chatId) and (Debtors.name eq name) }
 }

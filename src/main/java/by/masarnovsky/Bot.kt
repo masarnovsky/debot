@@ -1,13 +1,10 @@
 package by.masarnovsky
 
-import by.masarnovsky.service.newDebt
-import by.masarnovsky.service.repay
-import by.masarnovsky.service.saveOrUpdateNewUser
+import by.masarnovsky.service.*
 import com.elbekD.bot.Bot
 import com.elbekD.bot.types.CallbackQuery
 import com.elbekD.bot.types.InlineQuery
 import com.elbekD.bot.types.Message
-import com.mongodb.MongoCommandException
 import mu.KotlinLogging
 import java.io.FileInputStream
 import java.util.*
@@ -112,7 +109,7 @@ fun showPersonDebtsCommand() {
 fun deleteCommand() {
     bot.onCommand(DELETE_COMMAND) { message, _ ->
         val (chatId, text) = getChatIdAndTextFromMessage(message)
-        deletePerson(chatId, text)
+        deleteDebtor(chatId, text)
     }
 }
 
@@ -120,7 +117,7 @@ fun onInlineQuery() {
     bot.onInlineQuery { inlineQuery ->
 
         val (chatId, text) = getChatIdAndTextFromInlineQuery(inlineQuery)
-        returnDebtors(chatId, text!!)
+        returnListOfDebtorsForInlineQuery(chatId, text!!)
     }
 }
 
@@ -132,7 +129,7 @@ fun onCallbackQuery() {
         when (text) {
             DEBTORS_LIST_CALLBACK -> sendListOfDebtors(chatId)
             DELETE_HISTORY_CALLBACK -> deleteAllDebts(chatId, messageId)
-            NOT_DELETE_HISTORY_CALLBACK -> notDeleteAllDebts(chatId, messageId)
+            NOT_DELETE_HISTORY_CALLBACK -> deleteAllDebtsNoOption(chatId, messageId)
             else -> sendListOfDebtors(chatId)
         }
     }
@@ -150,14 +147,9 @@ fun onMessage() {
             } else {
                 mainMenu(chatId)
             }
-        } catch (ex: MongoCommandException) {
+        } catch (ex: Exception) {
             logger.error { ex }
-
-            bot.sendMessage(
-                chatId,
-                "Ошибка базы данных. Пожалуйста, повторите запрос.",
-                parseMode = "HTML",
-            )
+            sendMessage(chatId, COMMON_ERROR)
         }
     }
 }

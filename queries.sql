@@ -35,6 +35,6 @@ CREATE TABLE logs (
   type VARCHAR NOT NULL,
   currency VARCHAR,
   PRIMARY KEY (id),
-  CONSTRAINT fk_debtor FOREIGN KEY (debtor_id) REFERENCES debtors(id)
+  CONSTRAINT fk_debtor FOREIGN KEY (debtor_id) REFERENCES debtors(id) ON DELETE CASCADE
 );
 
