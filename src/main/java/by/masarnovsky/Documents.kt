@@ -1,6 +1,7 @@
 package by.masarnovsky
 
 import by.masarnovsky.db.Debtors
+import by.masarnovsky.db.Logs
 import by.masarnovsky.db.Users
 import by.masarnovsky.service.TimeService
 import com.elbekD.bot.types.Message
@@ -15,15 +16,7 @@ data class DebtorM(
     val name: String,
     var totalAmount: BigDecimal,
     var debts: MutableList<DebtM>,
-) {
-    constructor(chatId: Long, name: String, totalAmount: BigDecimal, debts: MutableList<DebtM>) : this(
-        null,
-        chatId,
-        name,
-        totalAmount,
-        debts,
-    )
-}
+)
 
 data class Debtor(
     var id: Long?,
@@ -55,9 +48,7 @@ data class Debtor(
     }
 }
 
-data class DebtM(val sum: BigDecimal, val comment: String, val date: LocalDateTime, var totalAmount: BigDecimal) {
-    constructor(sum: BigDecimal, comment: String, date: LocalDateTime) : this(sum, comment, date, sum)
-}
+data class DebtM(val sum: BigDecimal, val comment: String, val date: LocalDateTime, var totalAmount: BigDecimal)
 
 data class Log(
     val id: Long?,
@@ -75,6 +66,26 @@ data class Log(
                 TimeService.now(),
                 comment, "BYN", if (credit > BigDecimal.ZERO) "CREDIT" else "DEBIT"
             )
+
+    fun isEqualsToZeroAfterSubtractingFrom(amount: BigDecimal): Boolean {
+        var totalAmount = amount
+        if (comment != REPAY_VALUE) totalAmount -= credit
+        return totalAmount + credit > BigDecimal.ZERO
+    }
+
+    companion object {
+
+        fun fromRow(resultRow: ResultRow) = Log(
+            id = resultRow[Logs.id].value,
+            debtorId = resultRow[Logs.debtorId].value,
+            credit = resultRow[Logs.credit],
+            debit = resultRow[Logs.debit],
+            created = resultRow[Logs.created],
+            comment = resultRow[Logs.comment],
+            currency = resultRow[Logs.currency],
+            type = resultRow[Logs.type]
+        )
+    }
 }
 
 data class User(
@@ -87,34 +98,6 @@ data class User(
     val defaultLang: String = "RU",
     val defaultCurrency: String = "BYN",
 ) {
-//    constructor(
-//        chatId: Long, username: String?, firstName: String?,
-//        lastName: String?,
-//    ) : this(
-//        chatId,
-//        username,
-//        firstName,
-//        lastName,
-//        TimeService.now(),
-//        TimeService.now(),
-//        "RU",
-//        "BYN",
-//    )
-
-//    constructor(
-//        chatId: Long, username: String?,
-//        firstName: String?, lastName: String?,
-//        created: LocalDateTime, updated: LocalDateTime,
-//    ) : this(
-//        chatId,
-//        username,
-//        firstName,
-//        lastName,
-//        created,
-//        updated,
-//        "RU",
-//        "BYN",
-//    )
 
     companion object {
 
@@ -133,43 +116,5 @@ data class User(
             firstName = message.chat.first_name,
             lastName = message.chat.last_name
         )
-    }
-}
-
-data class UserM(
-    var _id: ObjectId?,
-    val chatId: Long,
-    var username: String?,
-    var firstName: String?,
-    var lastName: String?,
-    var lastCommand: String?,
-    var commandValue: String?,
-    val created: LocalDateTime,
-    var updated: LocalDateTime,
-    var userId: Int?,
-) {
-    constructor(chatId: Long, username: String?, firstName: String?, lastName: String?, userId: Int?) : this(
-        null,
-        chatId,
-        username,
-        firstName,
-        lastName,
-        null,
-        null,
-        TimeService.now(),
-        TimeService.now(),
-        userId
-    )
-}
-
-fun UserM.copyInto(user: UserM?): UserM {
-    return if (user != null) {
-        user.firstName = this.firstName
-        user.lastName = this.lastName
-        user.username = this.username
-        user.updated = TimeService.now()
-        user
-    } else {
-        this
     }
 }

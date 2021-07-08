@@ -7,6 +7,7 @@ import by.masarnovsky.db.Users
 import com.elbekD.bot.types.Message
 import mu.KotlinLogging
 import org.jetbrains.exposed.sql.*
+import org.jetbrains.exposed.sql.transactions.TransactionManager
 import org.jetbrains.exposed.sql.transactions.transaction
 import java.math.BigDecimal
 
@@ -35,7 +36,10 @@ fun saveOrUpdateNewUser(message: Message): User {
 
 fun findUserByChatId(chatId: Long): User? {
     logger.info { "find user by chatId:$chatId" }
-    return Users.select { Users.id eq chatId }.firstOrNull()?.let { User.fromRow(it) }
+    return Users
+        .select { Users.id eq chatId }
+        .firstOrNull()
+        ?.let { User.fromRow(it) }
 }
 
 fun findDebtorByUserIdAndName(chatId: Long, name: String): Debtor? {
@@ -44,6 +48,13 @@ fun findDebtorByUserIdAndName(chatId: Long, name: String): Debtor? {
         .select { (Debtors.userId eq chatId) and (Debtors.name eq name) }
         .firstOrNull()
         ?.let { Debtor.fromRow(it) }
+}
+
+fun findLogsForDebtorByDebtorId(debtorId: Long): List<Log> {
+    logger.info { "find logs for debtor:$debtorId" }
+    return Logs
+        .select { Logs.debtorId eq debtorId }
+        .map { Log.fromRow(it) }
 }
 
 fun insertUser(user: User): Long {
@@ -114,14 +125,24 @@ fun newDebt(chatId: Long, text: String) {
     val (name, amount, comment) = match.destructured
     val (debtor, log) = addNewLogToDebtor(name, amount.toBigDecimal(), comment, chatId)
 
-    //sent msg to chat
+    connection()
+    val text = transaction {
+        val logs = findLogsForDebtorByDebtorId(debtor.id!!)
+        return@transaction formatDebtorRecord(debtor, logs)
+    }
+
+    bot.sendMessage(chatId, text)
 }
 
 fun repay(chatId: Long, text: String) {
     logger.info { "call repay method for $chatId" }
     val match = Regex(PATTERN_REPAY).find(text)!!
     val (name, amount) = match.destructured
-    val (debtor, log) = addNewLogToDebtor(name, amount.toBigDecimal(), REPAY_VALUE, chatId)
+    try {
+        val (debtor, log) = addNewLogToDebtor(name, amount.toBigDecimal(), REPAY_VALUE, chatId)
+    } catch (ex: NegativeBalanceException) {
+
+    }
 
     //sent msg to chat
 }
@@ -146,6 +167,12 @@ fun addNewLogToDebtor(name: String, amount: BigDecimal, comment: String, chatId:
         val log = Log(debtor.id!!, credit, debit, comment)
         insertLog(log)
 
+        if (debtor.totalAmount < BigDecimal.ZERO) {
+            logger.info { "NegativeBalanceException for debtor:$debtor" }
+            TransactionManager.current().rollback()
+            throw NegativeBalanceException("Total amount should be positive number")
+        }
+
         return@transaction Pair(debtor, log)
     }
 
@@ -162,6 +189,11 @@ fun findAllUsers(): List<User> {
     return Users.selectAll().map { User.fromRow(it) }
 }
 
+fun findDebtorsForUser(chatId: Long): List<Debtor> {
+    logger.info { "find all debtor for user:$chatId" }
+    return Debtors.select { Debtors.userId eq chatId }.map { Debtor.fromRow(it) }
+}
+
 fun connection(): Database {
     return Database.connect(
         url = postgresUrl,
@@ -169,4 +201,21 @@ fun connection(): Database {
         user = postgresUser,
         password = postgresPassword,
     )
+}
+
+fun formatDebtorRecord(debtor: Debtor, logs: List<Log>): String {
+    return "Теперь ${debtor.name} торчит тебе ${debtor.totalAmount} BYN за: <b>${
+        formatListOfLogs(
+            debtor.totalAmount,
+            logs
+        )
+    }</b>"
+}
+
+fun formatListOfLogs(totalAmount: BigDecimal, logs: List<Log>): String {
+    return logs
+        .sortedByDescending { it.created }
+        .filter { log -> log.isEqualsToZeroAfterSubtractingFrom(totalAmount) }
+        .filter { it.comment != REPAY_VALUE }
+        .joinToString(", ") { log -> log.comment }
 }

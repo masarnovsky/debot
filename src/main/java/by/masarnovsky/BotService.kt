@@ -132,45 +132,6 @@ fun showPersonDebts(chatId: Long, text: String?) {
     }
 }
 
-@Deprecated(message = "old mongo version")
-fun updateDebt(name: String, sumValue: String, comment: String, chatId: Long): DebtorM {
-    logger.info { "call updateDebtor method for $chatId" }
-    val lowercaseName = name.toLowerCase()
-    val sum = sumValue.toBigDecimal()
-    val debt = DebtM(sum, comment, LocalDateTime.now())
-
-    val client = createMongoClient()
-    val debtor = client.startSession().use { clientSession ->
-        clientSession.startTransaction()
-
-        val collection = client.getDatabase(database).getCollection<DebtorM>(DEBTS_COLLECTION)
-        val whereQuery = BasicDBObject(mapOf("chatId" to chatId, "name" to lowercaseName))
-        var debtor = collection.withReadConcern(ReadConcern.MAJORITY).findOne(clientSession, whereQuery)
-
-        if (debtor != null) {
-            logger.info { "update existed debtor for $chatId" }
-            debtor.totalAmount += sum
-            debt.totalAmount = debtor.totalAmount
-            debtor.debts.add(debt)
-        } else {
-            logger.info { "create new debtor for $chatId" }
-            debt.totalAmount = sum
-            debtor = DebtorM(chatId, lowercaseName, sum, mutableListOf(debt))
-        }
-
-        if (debtor.totalAmount < BigDecimal.ZERO) {
-            clientSession.commitTransaction()
-            throw NegativeBalanceException("Total amount should be positive number")
-        } else {
-            collection.withWriteConcern(WriteConcern.MAJORITY).save(clientSession, debtor)
-            clientSession.commitTransaction()
-        }
-        debtor
-    }
-
-    return debtor
-}
-
 fun mainMenu(chatId: Long) {
     logger.info { "main menu was called for $chatId" }
     val list = InlineKeyboardButton(text = "Список всех", callback_data = "callback_list")
@@ -198,7 +159,7 @@ fun formingStringWithResultForAllCommand(debtors: List<DebtorM>): String {
     return totalRecord + resultRecord
 }
 
-fun formatDebtorRecord(debtor: DebtorM): String {
+fun formatDebtorRecord(debtor: DebtorM): String { // todo: next
     return "${debtor.name} ${debtor.totalAmount} BYN за: ${formatListOfDebts(debtor.debts)}"
 }
 
@@ -224,6 +185,7 @@ fun formatListOfDebts(debts: List<DebtM>): String {
         .joinToString(", ") { debt -> debt.comment }
 }
 
+@Deprecated(message = "old")
 fun getDebtors(chatId: Long): List<DebtorM> {
     logger.info { "method getDebtors was called" }
 
