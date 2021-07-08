@@ -102,7 +102,7 @@ fun showPersonDebtsCommand() {
     bot.onCommand(SHOW_COMMAND) { message, _ ->
 
         val (chatId, text) = getChatIdAndTextFromMessage(message)
-        showPersonDebts(chatId, text)
+        showDebtorLogs(chatId, text)
     }
 }
 
@@ -154,11 +154,11 @@ fun onMessage() {
     }
 }
 
-fun isStringMatchDebtPattern(str: String): Boolean {
+private fun isStringMatchDebtPattern(str: String): Boolean {
     return Regex(PATTERN_NEW_DEBTOR) matches str
 }
 
-fun isStringMatchRepayPattern(str: String): Boolean {
+private fun isStringMatchRepayPattern(str: String): Boolean {
     return Regex(PATTERN_REPAY) matches str
 }
 

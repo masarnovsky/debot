@@ -5,18 +5,10 @@ import by.masarnovsky.db.Logs
 import by.masarnovsky.db.Users
 import by.masarnovsky.service.TimeService
 import com.elbekD.bot.types.Message
-import org.bson.types.ObjectId
 import org.jetbrains.exposed.sql.ResultRow
 import java.math.BigDecimal
 import java.time.LocalDateTime
-
-data class DebtorM(
-    var _id: ObjectId?,
-    val chatId: Long,
-    val name: String,
-    var totalAmount: BigDecimal,
-    var debts: MutableList<DebtM>,
-)
+import java.time.format.DateTimeFormatter
 
 data class Debtor(
     var id: Long?,
@@ -50,8 +42,6 @@ data class Debtor(
     }
 }
 
-data class DebtM(val sum: BigDecimal, val comment: String, val date: LocalDateTime, var totalAmount: BigDecimal)
-
 data class Log(
     val id: Long?,
     val debtorId: Long,
@@ -73,6 +63,18 @@ data class Log(
         var totalAmount = amount
         if (comment != REPAY_VALUE) totalAmount -= credit
         return totalAmount + credit > BigDecimal.ZERO
+    }
+
+    fun summarize(): String {
+        return LOG_SUMMARIZE.format(getCreatedDateAsString(), getAmount(), comment)
+    }
+
+    private fun getAmount(): BigDecimal {
+        return credit.max(debit)
+    }
+
+    private fun getCreatedDateAsString(): String {
+        return created.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"))
     }
 
     companion object {
