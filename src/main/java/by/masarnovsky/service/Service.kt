@@ -1,9 +1,7 @@
 package by.masarnovsky.service
 
 import by.masarnovsky.*
-import by.masarnovsky.db.Debtors
-import by.masarnovsky.db.Logs
-import by.masarnovsky.db.Users
+import by.masarnovsky.db.*
 import com.elbekD.bot.types.Message
 import mu.KotlinLogging
 import org.jetbrains.exposed.sql.*
@@ -32,91 +30,6 @@ fun saveOrUpdateNewUser(message: Message): User {
     }
 
     return user
-}
-
-fun findUserByChatId(chatId: Long): User? {
-    logger.info { "find user by chatId:$chatId" }
-    return Users
-        .select { Users.id eq chatId }
-        .firstOrNull()
-        ?.let { User.fromRow(it) }
-}
-
-fun findDebtorByUserIdAndName(chatId: Long, name: String): Debtor? {
-    logger.info { "find debtor with name $name for user $chatId" }
-    return Debtors
-        .select { (Debtors.userId eq chatId) and (Debtors.name eq name) }
-        .firstOrNull()
-        ?.let { Debtor.fromRow(it) }
-}
-
-fun findLogsForDebtorByDebtorId(debtorId: Long): List<Log> {
-    logger.info { "find logs for debtor:$debtorId" }
-    return Logs
-        .select { Logs.debtorId eq debtorId }
-        .map { Log.fromRow(it) }
-}
-
-fun insertUser(user: User): Long {
-    logger.info { "save new user $user" }
-    return Users.insertAndGetId {
-        it[id] = user.chatId
-        it[username] = user.username
-        it[firstName] = user.firstName
-        it[lastName] = user.lastName
-        it[defaultLang] = user.defaultLang
-        it[defaultCurrency] = user.defaultCurrency
-        it[created] = TimeService.now()
-        it[updated] = TimeService.now()
-    }.value
-}
-
-fun insertDebtor(debtor: Debtor): Long {
-    logger.info { "save new debtor $debtor for user ${debtor.userId}" }
-    return Debtors.insertAndGetId {
-        it[userId] = debtor.userId
-        it[name] = debtor.name
-        it[totalAmount] = debtor.totalAmount
-        it[created] = debtor.created
-        it[updated] = debtor.updated
-    }.value
-}
-
-fun insertLog(log: Log): Long {
-    logger.info { "save new log $log" }
-    return Logs.insertAndGetId {
-        it[debtorId] = log.debtorId
-        it[credit] = log.credit
-        it[debit] = log.debit
-        it[created] = log.created
-        it[comment] = log.comment
-        it[currency] = log.currency
-        it[type] = log.type
-    }.value
-}
-
-fun updateUser(user: User) {
-    logger.info { "update user $user" }
-    Users.update({ Users.id eq user.chatId }) {
-        it[id] = user.chatId
-        it[username] = user.username
-        it[firstName] = user.firstName
-        it[lastName] = user.lastName
-        it[defaultLang] = user.defaultLang
-        it[defaultCurrency] = user.defaultCurrency
-        it[updated] = TimeService.now()
-    }
-}
-
-fun updateDebtor(debtor: Debtor) {
-    logger.info { "update debtor $debtor" }
-    Debtors.update({ Debtors.id eq debtor.id }) {
-        it[userId] = debtor.userId
-        it[name] = debtor.name
-        it[totalAmount] = debtor.totalAmount
-        it[created] = debtor.created
-        it[updated] = TimeService.now()
-    }
 }
 
 fun newDebt(chatId: Long, text: String) {
@@ -184,15 +97,9 @@ fun calculateCreditAndDebit(amount: BigDecimal): Pair<BigDecimal, BigDecimal> {
     else Pair(BigDecimal.ZERO, amount.multiply(BigDecimal(-1)))
 }
 
-fun findAllUsers(): List<User> {
-    logger.info { "find all users" }
-    return Users.selectAll().map { User.fromRow(it) }
-}
 
-fun findDebtorsForUser(chatId: Long): List<Debtor> {
-    logger.info { "find all debtor for user:$chatId" }
-    return Debtors.select { Debtors.userId eq chatId }.map { Debtor.fromRow(it) }
-}
+
+
 
 fun connection(): Database {
     return Database.connect(
