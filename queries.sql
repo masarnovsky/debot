@@ -4,7 +4,7 @@ DROP TABLE users;
 
 CREATE TABLE users (
   id BIGINT UNIQUE NOT NULL,
-  username VARCHAR NOT NULL,
+  username VARCHAR,
   first_name VARCHAR,
   last_name VARCHAR,
   default_lang VARCHAR,

@@ -12,3 +12,6 @@ const val START_COMMAND = "/start"
 const val SHOW_COMMAND = "/show"
 const val DELETE_COMMAND = "/delete"
 const val ALL_COMMAND = "/all"
+
+const val MIGRATE_USERS_COMMAND = "/migrateu"
+const val MIGRATE_DEBTORS_COMMAND = "/migrated"

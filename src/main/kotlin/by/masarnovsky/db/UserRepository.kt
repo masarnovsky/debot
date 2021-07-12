@@ -3,10 +3,7 @@ package by.masarnovsky.db
 import by.masarnovsky.User
 import by.masarnovsky.service.TimeService
 import mu.KotlinLogging
-import org.jetbrains.exposed.sql.insertAndGetId
-import org.jetbrains.exposed.sql.select
-import org.jetbrains.exposed.sql.selectAll
-import org.jetbrains.exposed.sql.update
+import org.jetbrains.exposed.sql.*
 
 private val logger = KotlinLogging.logger {}
 
@@ -27,8 +24,8 @@ fun insertUser(user: User): Long {
         it[lastName] = user.lastName
         it[defaultLang] = user.defaultLang
         it[defaultCurrency] = user.defaultCurrency
-        it[created] = TimeService.now()
-        it[updated] = TimeService.now()
+        it[created] = user.created
+        it[updated] = user.updated
     }.value
 }
 
@@ -48,4 +45,9 @@ fun updateUser(user: User) {
 fun findAllUsers(): List<User> {
     logger.info { "find all users" }
     return Users.selectAll().map { User.fromRow(it) }
+}
+
+fun insertUsers(users: List<User>): Int {
+    logger.info { "save ${users.size} users" }
+    return users.map { insertUser(it) }.count()
 }

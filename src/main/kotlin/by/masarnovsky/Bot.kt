@@ -1,5 +1,7 @@
 package by.masarnovsky
 
+import by.masarnovsky.migration.replicateMongoDebtorsAndDebts
+import by.masarnovsky.migration.replicateMongoUsers
 import by.masarnovsky.service.*
 import com.elbekD.bot.Bot
 import com.elbekD.bot.types.CallbackQuery
@@ -74,6 +76,8 @@ private fun setBehaviour() {
     showAllCommand()
     showPersonDebtsCommand()
     deleteCommand()
+    migrateUsersCommand()
+    migrateDebtorsAndDebtsCommand()
     onInlineQuery()
     onCallbackQuery()
     onMessage()
@@ -110,6 +114,24 @@ fun deleteCommand() {
     bot.onCommand(DELETE_COMMAND) { message, _ ->
         val (chatId, text) = getChatIdAndTextFromMessage(message)
         deleteDebtor(chatId, text)
+    }
+}
+
+fun migrateUsersCommand() {
+    bot.onCommand(MIGRATE_USERS_COMMAND) { message, _ ->
+        val (chatId, _) = getChatIdAndTextFromMessage(message)
+        if (chatId == ownerId.toLong()) {
+            replicateMongoUsers()
+        }
+    }
+}
+
+fun migrateDebtorsAndDebtsCommand() {
+    bot.onCommand(MIGRATE_DEBTORS_COMMAND) { message, _ ->
+        val (chatId, _) = getChatIdAndTextFromMessage(message)
+        if (chatId == ownerId.toLong()) {
+            replicateMongoDebtorsAndDebts()
+        }
     }
 }
 
