@@ -66,7 +66,7 @@ private fun setupPostgresCredentials() {
     if (postgresUrl.startsWith("postgres://")) {
         postgresUrl = postgresUrl.replaceFirst("postgres://", "jdbc:pgsql://")
     }
-    postgresUrl += "?sslMode=Require"
+    if (isProd) postgresUrl += "?sslMode=Require"
 }
 
 private fun setBehaviour() {
