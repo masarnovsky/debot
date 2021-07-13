@@ -2,7 +2,8 @@ package by.masarnovsky
 
 
 const val REPAY_VALUE = "Возврат суммы"
-const val MAIN_MENU_DESCRIPTION = "Добавляй должника в таком формате: \n<b>имя 66.6 комментарий</b> \nЧтобы вычесть сумму долга: \n<b>имя -97</b> \nКнопочка чтобы посмотреть всех"
+const val MAIN_MENU_DESCRIPTION =
+    "Добавляй должника в таком формате: \n<b>имя 66.6 комментарий</b> \nЧтобы вычесть сумму долга: \n<b>имя -97</b> \nКнопочка чтобы посмотреть всех"
 const val NEGATIVE_BALANCE_ERROR = "Введена неверная сумма, баланс не может быть отрицательным"
 const val COMMON_ERROR = "Произошла ошибка. Пожалуйста, повторите запрос"
 const val NOT_DELETE_HISTORY = "Вы решили не удалять историю"

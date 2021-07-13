@@ -40,6 +40,24 @@ data class Debtor(
 
         fun totalAmount(debtors: Set<Debtor>): BigDecimal = debtors.sumOf { it.totalAmount }
     }
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+
+        other as Debtor
+
+        if (userId != other.userId) return false
+        if (name != other.name) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        var result = userId.hashCode()
+        result = 31 * result + name.hashCode()
+        return result
+    }
 }
 
 data class Log(
@@ -56,6 +74,13 @@ data class Log(
             this(
                 null, debtorId, credit, debit,
                 TimeService.now(),
+                comment, "BYN", if (credit > BigDecimal.ZERO) "CREDIT" else "DEBIT"
+            )
+
+    constructor(debtorId: Long, credit: BigDecimal, debit: BigDecimal, comment: String, created: LocalDateTime) :
+            this(
+                null, debtorId, credit, debit,
+                created,
                 comment, "BYN", if (credit > BigDecimal.ZERO) "CREDIT" else "DEBIT"
             )
 

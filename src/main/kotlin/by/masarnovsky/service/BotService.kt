@@ -50,11 +50,11 @@ fun saveOrUpdateNewUser(message: Message): User {
     return user
 }
 
-fun newDebt(chatId: Long, text: String) {
+fun newDebt(chatId: Long, command: String) {
     logger.info { "call addNewDebtor method for $chatId" }
-    val match = PATTERN_NEW_DEBTOR.toRegex().find(text)!!
+    val match = PATTERN_NEW_DEBTOR.toRegex().find(command)!!
     val (name, amount, comment) = match.destructured
-    val (debtor, log) = addNewLogToDebtor(name, amount.toBigDecimal(), comment, chatId)
+    val (debtor, _) = addNewLogToDebtor(name, amount.toBigDecimal(), comment, chatId)
 
     connection()
     val text = transaction {
@@ -65,12 +65,12 @@ fun newDebt(chatId: Long, text: String) {
     sendMessage(chatId, text)
 }
 
-fun repay(chatId: Long, text: String) {
+fun repay(chatId: Long, command: String) {
     logger.info { "call repay method for $chatId" }
-    val match = Regex(PATTERN_REPAY).find(text)!!
+    val match = Regex(PATTERN_REPAY).find(command)!!
     val (name, amount) = match.destructured
     try {
-        val (debtor, log) = addNewLogToDebtor(name, amount.toBigDecimal(), REPAY_VALUE, chatId)
+        val (debtor, _) = addNewLogToDebtor(name, amount.toBigDecimal(), REPAY_VALUE, chatId)
 
         connection()
         val text = transaction {
