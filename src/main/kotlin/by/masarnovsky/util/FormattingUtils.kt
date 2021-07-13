@@ -1,18 +1,31 @@
 package by.masarnovsky.util
 
 import by.masarnovsky.*
+import by.masarnovsky.Log.Companion.calculateHistoricalCredit
 import java.math.BigDecimal
 
 fun formatDebtorRecord(debtor: Debtor, logs: List<Log>): String {
     return DEBTOR_RECORD.format(debtor.name, debtor.totalAmount, constructListOfLogs(debtor.totalAmount, logs))
 }
 
+fun formatDebtorRecordForInlineQuery(debtor: Debtor, logs: List<Log>): String {
+    return DEBTOR_RECORD_FOR_INLINE_QUERY.format(debtor.name, debtor.totalAmount, constructListOfLogs(debtor.totalAmount, logs))
+}
+
 fun formatDebtorShortRecord(debtor: Debtor, logs: List<Log>): String {
     return DEBTOR_RECORD_SHORT.format(debtor.name, debtor.totalAmount, constructListOfLogs(debtor.totalAmount, logs))
 }
 
+fun formatDebtorHistoryHeader(debtor: Debtor):String {
+    return DEBTOR_LOG_HISTORY_HEADER.format(debtor.name, debtor.totalAmount)
+}
+
+fun formatDebtorHistoricalAmount(debtor: Debtor, logs: List<Log>):String {
+    return DEBTOR_HISTORICAL_CREDIT.format(debtor.name, calculateHistoricalCredit(logs))
+}
+
 fun formatTotalAmountOfDebtsRecord(debtors: Set<Debtor>): String {
-    return ALL_DEBTS_TOTAL_AMOUNT.format(Debtor.totalAmount(debtors))
+    return CURRENT_DEBTS_TOTAL_AMOUNT.format(Debtor.totalAmount(debtors))
 }
 
 fun constructListOfAllDebtors(debtorsMap: Map<Debtor, List<Log>>): String {
@@ -28,7 +41,7 @@ fun constructListOfLogs(totalAmount: BigDecimal, logs: List<Log>): String {
     return logs
         .sortedByDescending { it.created }
         .filter { log ->
-            if (log.comment != REPAY_VALUE) amount -= log.credit
+            if (log.comment != REPAY_VALUE) amount -= log.credit //todo: do smth with it
             (amount + log.credit) > BigDecimal.ZERO
         }
         .filter { it.comment != REPAY_VALUE }

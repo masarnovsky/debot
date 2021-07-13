@@ -108,6 +108,12 @@ data class Log(
             currency = resultRow[Logs.currency],
             type = resultRow[Logs.type]
         )
+
+        fun calculateHistoricalCredit(logs: List<Log>): BigDecimal {
+            return logs
+                .filter { it.type == "CREDIT" }
+                .sumOf { it.credit }
+        }
     }
 }
 

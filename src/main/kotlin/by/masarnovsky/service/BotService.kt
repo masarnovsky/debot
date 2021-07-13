@@ -144,10 +144,12 @@ fun showDebtorLogs(chatId: Long, command: String?) {
         }
 
         if (debtor != null) {
-            val header = DEBTOR_LOG_HISTORY_HEADER.format(debtor.name, debtor.totalAmount)
+            val header = formatDebtorHistoryHeader(debtor)
+            val footer = formatDebtorHistoricalAmount(debtor, logs)
             val text = logs
                 .reversed()
                 .fold(header) { temp, log -> temp + log.summarize() }
+                .plus(footer)
             sendMessage(chatId, text)
         } else {
             sendMessage(chatId, DEBTOR_NOT_FOUND)

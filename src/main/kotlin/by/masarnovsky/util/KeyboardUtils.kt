@@ -18,13 +18,13 @@ fun createInlineQueryResultArticle(debtor: Debtor, logs: List<Log>): InlineQuery
         id = UUID.randomUUID().toString(),
         title = debtor.name,
         input_message_content = createInputTextMessageContent(debtor, logs),
-        description = DEBTOR_RECORD_FOR_INLINE_QUERY.format(debtor.name, debtor.totalAmount),
+        description = DEBTOR_SUGGESTION_FOR_INLINE_QUERY.format(debtor.name, debtor.totalAmount),
     )
 }
 
 fun createInputTextMessageContent(debtor: Debtor, logs: List<Log>): InputTextMessageContent {
     return InputTextMessageContent(
-        message_text = formatDebtorRecord(debtor, logs),
+        message_text = formatDebtorRecordForInlineQuery(debtor, logs),
         parse_mode = "HTML",
     )
 }
