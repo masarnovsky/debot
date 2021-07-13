@@ -199,7 +199,7 @@ private fun findDebtorsWithLogs(chatId: Long): Map<Debtor, List<Log>> {
 
     val map = mutableMapOf<Debtor, List<Log>>()
     transaction {
-        val debtors = findDebtorsForUser(chatId)
+        val debtors = findDebtorsWithCreditForUser(chatId)
         debtors.forEach {
             map[it] = findLogsForDebtorByDebtorId(it.id!!)
         }

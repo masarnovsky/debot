@@ -4,6 +4,7 @@ import by.masarnovsky.Debtor
 import by.masarnovsky.service.TimeService
 import mu.KotlinLogging
 import org.jetbrains.exposed.sql.*
+import java.math.BigDecimal
 
 private val logger = KotlinLogging.logger {}
 
@@ -38,8 +39,13 @@ fun updateDebtor(debtor: Debtor) {
 }
 
 fun findDebtorsForUser(chatId: Long): List<Debtor> {
-    logger.info { "find all debtor for user:$chatId" }
+    logger.info { "find all debtors for user:$chatId" }
     return Debtors.select { Debtors.userId eq chatId }.map { Debtor.fromRow(it) }
+}
+
+fun findDebtorsWithCreditForUser(chatId: Long): List<Debtor> {
+    logger.info { "find debtors with credit for user:$chatId" }
+    return Debtors.select { (Debtors.userId eq chatId) and (Debtors.totalAmount greater BigDecimal.ZERO) }.map { Debtor.fromRow(it) }
 }
 
 fun deleteAllDebtorsForUser(chatId: Long): Int {
