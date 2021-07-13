@@ -76,6 +76,7 @@ private fun setBehaviour() {
     showAllCommand()
     showPersonDebtsCommand()
     deleteCommand()
+    howtoCommand()
     migrateUsersCommand()
     migrateDebtorsAndDebtsCommand()
     onInlineQuery()
@@ -114,6 +115,13 @@ fun deleteCommand() {
     bot.onCommand(DELETE_COMMAND) { message, _ ->
         val (chatId, text) = getChatIdAndTextFromMessage(message)
         deleteDebtor(chatId, text)
+    }
+}
+
+fun howtoCommand() {
+    bot.onCommand(HOWTO_COMMAND) { message, _ ->
+        val (chatId, _) = getChatIdAndTextFromMessage(message)
+        howtoCommand(chatId)
     }
 }
 

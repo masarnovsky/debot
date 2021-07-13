@@ -190,6 +190,10 @@ private fun addNewLogToDebtor(name: String, amount: BigDecimal, comment: String,
     return pair
 }
 
+fun howtoCommand(chatId: Long) {
+    sendMessage(chatId, HOWTO_INFO)
+}
+
 private fun findDebtorsWithLogs(chatId: Long): Map<Debtor, List<Log>> {
     connection()
 
