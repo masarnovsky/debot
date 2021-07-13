@@ -84,12 +84,6 @@ data class Log(
                 comment, "BYN", if (credit > BigDecimal.ZERO) "CREDIT" else "DEBIT"
             )
 
-    fun isEqualsToZeroAfterSubtractingFrom(amount: BigDecimal): Boolean {
-        var totalAmount = amount
-        if (comment != REPAY_VALUE) totalAmount -= credit
-        return totalAmount + credit > BigDecimal.ZERO
-    }
-
     fun summarize(): String {
         return LOG_SUMMARIZE.format(getCreatedDateAsString(), getAmount(), comment)
     }

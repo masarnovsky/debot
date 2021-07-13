@@ -24,9 +24,13 @@ fun constructListOfAllDebtors(debtorsMap: Map<Debtor, List<Log>>): String {
 }
 
 fun constructListOfLogs(totalAmount: BigDecimal, logs: List<Log>): String {
+    var amount = totalAmount
     return logs
         .sortedByDescending { it.created }
-        .filter { log -> log.isEqualsToZeroAfterSubtractingFrom(totalAmount) }
+        .filter { log ->
+            if (log.comment != REPAY_VALUE) amount -= log.credit
+            (amount + log.credit) > BigDecimal.ZERO
+        }
         .filter { it.comment != REPAY_VALUE }
         .joinToString(", ") { log -> log.comment }
 }
