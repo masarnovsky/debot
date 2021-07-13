@@ -9,23 +9,35 @@ fun formatDebtorRecord(debtor: Debtor, logs: List<Log>): String {
 }
 
 fun formatDebtorRecordForInlineQuery(debtor: Debtor, logs: List<Log>): String {
-    return DEBTOR_RECORD_FOR_INLINE_QUERY.format(debtor.name, debtor.totalAmount, constructListOfLogs(debtor.totalAmount, logs))
+    return DEBTOR_RECORD_FOR_INLINE_QUERY.format(
+        debtor.name,
+        debtor.totalAmount,
+        constructListOfLogs(debtor.totalAmount, logs)
+    )
 }
 
 fun formatDebtorShortRecord(debtor: Debtor, logs: List<Log>): String {
     return DEBTOR_RECORD_SHORT.format(debtor.name, debtor.totalAmount, constructListOfLogs(debtor.totalAmount, logs))
 }
 
-fun formatDebtorHistoryHeader(debtor: Debtor):String {
+fun formatDebtorHistoryHeader(debtor: Debtor): String {
     return DEBTOR_LOG_HISTORY_HEADER.format(debtor.name, debtor.totalAmount)
 }
 
-fun formatDebtorHistoricalAmount(debtor: Debtor, logs: List<Log>):String {
+fun formatDebtorHistoricalAmount(debtor: Debtor, logs: List<Log>): String {
     return DEBTOR_HISTORICAL_CREDIT.format(debtor.name, calculateHistoricalCredit(logs))
 }
 
 fun formatTotalAmountOfDebtsRecord(debtors: Set<Debtor>): String {
     return CURRENT_DEBTS_TOTAL_AMOUNT.format(Debtor.totalAmount(debtors))
+}
+
+fun formatMergedDebtorNotFound(source: String, destination: String): String {
+    return MERGE_DEBTOR_NOT_FOUND.format(source, destination)
+}
+
+fun formatMergedDebtorSuccess(count: Int, source: String, destination: String):String {
+    return MERGE_DEBTOR_SUCCESS.format(count, source, destination)
 }
 
 fun constructListOfAllDebtors(debtorsMap: Map<Debtor, List<Log>>): String {

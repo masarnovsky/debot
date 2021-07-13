@@ -77,6 +77,7 @@ private fun setBehaviour() {
     showPersonDebtsCommand()
     deleteCommand()
     howtoCommand()
+    mergeCommand()
     migrateUsersCommand()
     migrateDebtorsAndDebtsCommand()
     onInlineQuery()
@@ -121,7 +122,14 @@ fun deleteCommand() {
 fun howtoCommand() {
     bot.onCommand(HOWTO_COMMAND) { message, _ ->
         val (chatId, _) = getChatIdAndTextFromMessage(message)
-        howtoCommand(chatId)
+        sendHowtoMessage(chatId)
+    }
+}
+
+fun mergeCommand() {
+    bot.onCommand(MERGE_COMMAND) { message, _ ->
+        val (chatId, text) = getChatIdAndTextFromMessage(message)
+        mergeDebtors(chatId, text!!)
     }
 }
 
@@ -190,6 +198,10 @@ private fun isStringMatchDebtPattern(str: String): Boolean {
 
 private fun isStringMatchRepayPattern(str: String): Boolean {
     return Regex(PATTERN_REPAY) matches str
+}
+
+fun isStringMatchMergePattern(str: String): Boolean {
+    return Regex(PATTERN_MERGE) matches str
 }
 
 private fun getChatIdAndTextFromMessage(message: Message): ChatIdAndText {

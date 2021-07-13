@@ -34,8 +34,6 @@ fun saveOrUpdateNewUser(message: Message): User {
     connection()
 
     val user = transaction {
-        addLogger(StdOutSqlLogger)
-
         var user = findUserByChatId(message.chat.id)
         if (user != null) {
             updateUser(user)
@@ -165,7 +163,6 @@ private fun addNewLogToDebtor(name: String, amount: BigDecimal, comment: String,
     connection()
 
     val pair = transaction {
-        addLogger(StdOutSqlLogger)
         var debtor = findDebtorByUserIdAndName(chatId, name)
         val (credit, debit) = calculateCreditAndDebit(amount)
 
@@ -192,8 +189,47 @@ private fun addNewLogToDebtor(name: String, amount: BigDecimal, comment: String,
     return pair
 }
 
-fun howtoCommand(chatId: Long) {
+fun sendHowtoMessage(chatId: Long) {
     sendMessage(chatId, HOWTO_INFO)
+}
+
+fun mergeDebtors(chatId: Long, command: String) {
+    logger.info { "call mergeDebtors method for $chatId" }
+
+    if (isStringMatchMergePattern(command)) {
+        val names = PATTERN_MERGE.toRegex().find(command)!!
+        val (source, destination) = names.destructured
+
+        connection()
+
+        val mergedLogsCount = transaction {
+            val sourceUser = findDebtorByUserIdAndName(chatId, source)
+            val destinationUser = findDebtorByUserIdAndName(chatId, destination)
+
+            if (sourceUser == null || destinationUser == null) {
+                sendMessage(chatId, formatMergedDebtorNotFound(source, destination))
+                return@transaction 0
+            } else {
+                val sourceLogs = findLogsForDebtorByDebtorId(sourceUser.id!!)
+                return@transaction sourceLogs
+                    .map { sourceLog ->
+                        addNewLogToDebtor(
+                            destinationUser.name,
+                            sourceLog.getAmountAsRawValue(),
+                            sourceLog.comment,
+                            chatId
+                        )
+                    }
+                    .count()
+            }
+        }
+
+        if (mergedLogsCount > 0) {
+            sendMessage(chatId, formatMergedDebtorSuccess(mergedLogsCount, source, destination))
+        }
+    } else {
+        sendMessage(chatId, WRONG_COMMAND_FORMAT)
+    }
 }
 
 private fun findDebtorsWithLogs(chatId: Long): Map<Debtor, List<Log>> {

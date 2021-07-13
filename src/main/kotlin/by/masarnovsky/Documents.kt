@@ -88,6 +88,11 @@ data class Log(
         return LOG_SUMMARIZE.format(getCreatedDateAsString(), getAmount(), comment)
     }
 
+    fun getAmountAsRawValue(): BigDecimal {
+        return if (credit > BigDecimal.ZERO) credit
+        else debit.multiply(BigDecimal(-1))
+    }
+
     private fun getAmount(): BigDecimal {
         return credit.max(debit)
     }
