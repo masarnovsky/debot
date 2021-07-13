@@ -1,10 +1,12 @@
 package by.masarnovsky
 
+import by.masarnovsky.migration.replicateMongoDebtorsAndDebts
+import by.masarnovsky.migration.replicateMongoUsers
+import by.masarnovsky.service.*
 import com.elbekD.bot.Bot
 import com.elbekD.bot.types.CallbackQuery
 import com.elbekD.bot.types.InlineQuery
 import com.elbekD.bot.types.Message
-import com.mongodb.MongoCommandException
 import mu.KotlinLogging
 import java.io.FileInputStream
 import java.util.*
@@ -15,6 +17,9 @@ lateinit var username: String
 lateinit var databaseUrl: String
 lateinit var database: String
 lateinit var ownerId: String
+lateinit var postgresUrl: String
+lateinit var postgresUser: String
+lateinit var postgresPassword: String
 var isProd = false
 
 private val logger = KotlinLogging.logger {}
@@ -38,6 +43,7 @@ private fun loadProperties() {
         databaseUrl = System.getenv()["DATABASE_URL"].toString()
         database = System.getenv()["DATABASE"].toString()
         ownerId = System.getenv()["OWNER_ID"].toString()
+        postgresUrl = System.getenv()["HEROKU_POSTGRESQL_GOLD_URL"].toString()
     } else {
         logger.info { "setup test environment" }
         val properties = Properties()
@@ -49,7 +55,20 @@ private fun loadProperties() {
         databaseUrl = properties.getProperty("DATABASE_URL")
         database = properties.getProperty("DATABASE")
         ownerId = properties.getProperty("OWNER_ID")
+        postgresUrl = properties.getProperty("HEROKU_POSTGRESQL_GOLD_URL")
     }
+    setupPostgresCredentials()
+}
+
+private fun setupPostgresCredentials() {
+    val match = POSTGRES_URL_PATTERN.toRegex().find(postgresUrl)!!
+    val (username, password) = match.destructured
+    postgresUser = username
+    postgresPassword = password
+    if (postgresUrl.startsWith("postgres://")) {
+        postgresUrl = postgresUrl.replaceFirst("postgres://", "jdbc:pgsql://")
+    }
+    if (isProd) postgresUrl += "?sslMode=Require"
 }
 
 private fun setBehaviour() {
@@ -57,6 +76,10 @@ private fun setBehaviour() {
     showAllCommand()
     showPersonDebtsCommand()
     deleteCommand()
+    howtoCommand()
+    mergeCommand()
+    migrateUsersCommand()
+    migrateDebtorsAndDebtsCommand()
     onInlineQuery()
     onCallbackQuery()
     onMessage()
@@ -85,14 +108,46 @@ fun showPersonDebtsCommand() {
     bot.onCommand(SHOW_COMMAND) { message, _ ->
 
         val (chatId, text) = getChatIdAndTextFromMessage(message)
-        showPersonDebts(chatId, text)
+        showDebtorLogs(chatId, text)
     }
 }
 
 fun deleteCommand() {
     bot.onCommand(DELETE_COMMAND) { message, _ ->
         val (chatId, text) = getChatIdAndTextFromMessage(message)
-        deletePerson(chatId, text)
+        deleteDebtor(chatId, text)
+    }
+}
+
+fun howtoCommand() {
+    bot.onCommand(HOWTO_COMMAND) { message, _ ->
+        val (chatId, _) = getChatIdAndTextFromMessage(message)
+        sendHowtoMessage(chatId)
+    }
+}
+
+fun mergeCommand() {
+    bot.onCommand(MERGE_COMMAND) { message, _ ->
+        val (chatId, text) = getChatIdAndTextFromMessage(message)
+        mergeDebtors(chatId, text!!)
+    }
+}
+
+fun migrateUsersCommand() {
+    bot.onCommand(MIGRATE_USERS_COMMAND) { message, _ ->
+        val (chatId, _) = getChatIdAndTextFromMessage(message)
+        if (chatId == ownerId.toLong()) {
+            replicateMongoUsers()
+        }
+    }
+}
+
+fun migrateDebtorsAndDebtsCommand() {
+    bot.onCommand(MIGRATE_DEBTORS_COMMAND) { message, _ ->
+        val (chatId, _) = getChatIdAndTextFromMessage(message)
+        if (chatId == ownerId.toLong()) {
+            replicateMongoDebtorsAndDebts()
+        }
     }
 }
 
@@ -100,7 +155,7 @@ fun onInlineQuery() {
     bot.onInlineQuery { inlineQuery ->
 
         val (chatId, text) = getChatIdAndTextFromInlineQuery(inlineQuery)
-        returnDebtors(chatId, text!!)
+        returnListOfDebtorsForInlineQuery(chatId, text!!)
     }
 }
 
@@ -112,7 +167,7 @@ fun onCallbackQuery() {
         when (text) {
             DEBTORS_LIST_CALLBACK -> sendListOfDebtors(chatId)
             DELETE_HISTORY_CALLBACK -> deleteAllDebts(chatId, messageId)
-            NOT_DELETE_HISTORY_CALLBACK -> notDeleteAllDebts(chatId, messageId)
+            NOT_DELETE_HISTORY_CALLBACK -> deleteAllDebtsNoOption(chatId, messageId)
             else -> sendListOfDebtors(chatId)
         }
     }
@@ -124,30 +179,29 @@ fun onMessage() {
         val (chatId, text) = getChatIdAndTextFromMessage(message)
         try {
             if (text != null && isStringMatchDebtPattern(text)) {
-                addNewDebt(chatId, text)
+                newDebt(chatId, text)
             } else if (text != null && isStringMatchRepayPattern(text)) {
                 repay(chatId, text)
             } else {
                 mainMenu(chatId)
             }
-        } catch (ex: MongoCommandException) {
+        } catch (ex: Exception) {
             logger.error { ex }
-
-            bot.sendMessage(
-                chatId,
-                "Ошибка базы данных. Пожалуйста, повторите запрос.",
-                parseMode = "HTML",
-            )
+            sendMessage(chatId, COMMON_ERROR)
         }
     }
 }
 
-fun isStringMatchDebtPattern(str: String): Boolean {
+private fun isStringMatchDebtPattern(str: String): Boolean {
     return Regex(PATTERN_NEW_DEBTOR) matches str
 }
 
-fun isStringMatchRepayPattern(str: String): Boolean {
+private fun isStringMatchRepayPattern(str: String): Boolean {
     return Regex(PATTERN_REPAY) matches str
+}
+
+fun isStringMatchMergePattern(str: String): Boolean {
+    return Regex(PATTERN_MERGE) matches str
 }
 
 private fun getChatIdAndTextFromMessage(message: Message): ChatIdAndText {
