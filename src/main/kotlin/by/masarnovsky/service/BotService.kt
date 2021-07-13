@@ -57,7 +57,7 @@ fun newDebt(chatId: Long, command: String) {
     connection()
     val text = transaction {
         val logs = findLogsForDebtorByDebtorId(debtor.id!!)
-        return@transaction formatDebtorRecord(debtor, logs)
+        return@transaction formatNewLogRecord(debtor, logs)
     }
 
     sendMessage(chatId, text)
@@ -68,12 +68,12 @@ fun repay(chatId: Long, command: String) {
     val match = Regex(PATTERN_REPAY).find(command)!!
     val (name, amount) = match.destructured
     try {
-        val (debtor, _) = addNewLogToDebtor(name, amount.toBigDecimal(), REPAY_VALUE, chatId)
+        val (debtor, log) = addNewLogToDebtor(name, amount.toBigDecimal(), REPAY_VALUE, chatId)
 
         connection()
         val text = transaction {
             val logs = findLogsForDebtorByDebtorId(debtor.id!!)
-            return@transaction formatDebtorRecord(debtor, logs)
+            return@transaction formatRepayRecord(debtor, log, logs)
         }
 
         sendMessage(chatId, text)
@@ -100,7 +100,7 @@ fun deleteDebtor(chatId: Long, command: String?) {
     val name = command?.replace(Regex("/delete ?"), "")
 
     if (name?.isNotEmpty() == true) {
-        logger.info { "delete $name for $chatId" }
+        logger.info { "delete debtor $name for $chatId" }
 
         connection()
         val count = transaction {
@@ -203,11 +203,15 @@ fun mergeDebtors(chatId: Long, command: String) {
         connection()
 
         val mergedLogsCount = transaction {
+            val existedNames = findDebtorsForUser(chatId).map { it.name }
             val sourceUser = findDebtorByUserIdAndName(chatId, source)
             val destinationUser = findDebtorByUserIdAndName(chatId, destination)
 
             if (sourceUser == null || destinationUser == null) {
-                sendMessage(chatId, formatMergedDebtorNotFound(source, destination))
+                sendMessage(chatId, formatMergedDebtorNotFound(source, destination, existedNames))
+                return@transaction 0
+            } else if (sourceUser.id == destinationUser.id) {
+                sendMessage(chatId, MERGE_DEBTOR_DUPLICATE_ERROR)
                 return@transaction 0
             } else {
                 val sourceLogs = findLogsForDebtorByDebtorId(sourceUser.id!!)

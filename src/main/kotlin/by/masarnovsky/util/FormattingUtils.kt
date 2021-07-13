@@ -4,8 +4,18 @@ import by.masarnovsky.*
 import by.masarnovsky.Log.Companion.calculateHistoricalCredit
 import java.math.BigDecimal
 
-fun formatDebtorRecord(debtor: Debtor, logs: List<Log>): String {
+fun formatNewLogRecord(debtor: Debtor, logs: List<Log>): String {
     return DEBTOR_RECORD.format(debtor.name, debtor.totalAmount, constructListOfLogs(debtor.totalAmount, logs))
+}
+
+fun formatRepayRecord(debtor: Debtor, log: Log, logs: List<Log>): String {
+    val end =
+        if (debtor.totalAmount > BigDecimal.ZERO)
+            DEBTOR_CREDIT_AFTER_REPAY.format(debtor.totalAmount, constructListOfLogs(debtor.totalAmount, logs))
+        else
+            DEBTOR_ZERO_CREDIT
+
+    return DEBTOR_RETURN_RECORD.format(debtor.name, log.debit).plus(end)
 }
 
 fun formatDebtorRecordForInlineQuery(debtor: Debtor, logs: List<Log>): String {
@@ -32,11 +42,11 @@ fun formatTotalAmountOfDebtsRecord(debtors: Set<Debtor>): String {
     return CURRENT_DEBTS_TOTAL_AMOUNT.format(Debtor.totalAmount(debtors))
 }
 
-fun formatMergedDebtorNotFound(source: String, destination: String): String {
-    return MERGE_DEBTOR_NOT_FOUND.format(source, destination)
+fun formatMergedDebtorNotFound(source: String, destination: String, names: List<String>): String {
+    return MERGE_DEBTOR_NOT_FOUND.format(source, destination, constructListOfDebtorNames(names))
 }
 
-fun formatMergedDebtorSuccess(count: Int, source: String, destination: String):String {
+fun formatMergedDebtorSuccess(count: Int, source: String, destination: String): String {
     return MERGE_DEBTOR_SUCCESS.format(count, source, destination)
 }
 
@@ -47,6 +57,11 @@ fun constructListOfAllDebtors(debtorsMap: Map<Debtor, List<Log>>): String {
         debtors.joinToString(separator = "\n") { debtor -> formatDebtorShortRecord(debtor, debtorsMap[debtor]!!) }
     return totalAmount + debtorsRows
 }
+
+fun constructListOfDebtorNames(names: List<String>): String {
+    return names.joinToString { debtor -> debtor }
+}
+
 
 fun constructListOfLogs(totalAmount: BigDecimal, logs: List<Log>): String {
     var amount = totalAmount

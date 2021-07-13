@@ -11,7 +11,7 @@ private val logger = KotlinLogging.logger {}
 fun findDebtorByUserIdAndName(chatId: Long, name: String): Debtor? {
     logger.info { "find debtor with name $name for user $chatId" }
     return Debtors
-        .select { (Debtors.userId eq chatId) and (Debtors.name eq name) }
+        .select { (Debtors.userId eq chatId) and (Debtors.name eq name.toLowerCase()) }
         .firstOrNull()
         ?.let { Debtor.fromRow(it) }
 }
@@ -20,7 +20,7 @@ fun insertDebtor(debtor: Debtor): Long {
     logger.info { "save new debtor $debtor for user ${debtor.userId}" }
     return Debtors.insertAndGetId {
         it[userId] = debtor.userId
-        it[name] = debtor.name
+        it[name] = debtor.name.toLowerCase()
         it[totalAmount] = debtor.totalAmount
         it[created] = debtor.created
         it[updated] = debtor.updated
@@ -31,7 +31,7 @@ fun updateDebtor(debtor: Debtor) {
     logger.info { "update debtor $debtor" }
     Debtors.update({ Debtors.id eq debtor.id }) {
         it[userId] = debtor.userId
-        it[name] = debtor.name
+        it[name] = debtor.name.toLowerCase()
         it[totalAmount] = debtor.totalAmount
         it[created] = debtor.created
         it[updated] = TimeService.now()
@@ -53,5 +53,5 @@ fun deleteAllDebtorsForUser(chatId: Long): Int {
 }
 
 fun deleteDebtorForUserByName(chatId: Long, name: String): Int {
-    return Debtors.deleteWhere { (Debtors.userId eq chatId) and (Debtors.name eq name) }
+    return Debtors.deleteWhere { (Debtors.userId eq chatId) and (Debtors.name eq name.toLowerCase()) }
 }
