@@ -30,6 +30,11 @@ fun createInputTextMessageContent(debtor: Debtor, logs: List<Log>): InputTextMes
 }
 
 fun createMainMenuKeyboard(): InlineKeyboardMarkup {
-    val list = InlineKeyboardButton(text = LIST_OF_ALL, callback_data = DEBTORS_LIST_CALLBACK)
+    val list = InlineKeyboardButton(text = LIST_OF_ALL_BUTTON, callback_data = DEBTORS_LIST_CALLBACK)
+    return InlineKeyboardMarkup(listOf(listOf(list)))
+}
+
+fun createShowMergedUserKeyboard(name: String): InlineKeyboardMarkup {
+    val list = InlineKeyboardButton(text = formatShowMergedDebtorButton(name), callback_data = formatShowMergedCallback(name))
     return InlineKeyboardMarkup(listOf(listOf(list)))
 }

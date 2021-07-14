@@ -108,7 +108,7 @@ fun showPersonDebtsCommand() {
     bot.onCommand(SHOW_COMMAND) { message, _ ->
 
         val (chatId, text) = getChatIdAndTextFromMessage(message)
-        showDebtorLogs(chatId, text)
+        showDebtorLogsFromCommand(chatId, text)
     }
 }
 
@@ -164,11 +164,15 @@ fun onCallbackQuery() {
 
         val (chatId, messageId, text) = getChatIdAndTextFromCallbackQuery(callback)
 
-        when (text) {
-            DEBTORS_LIST_CALLBACK -> sendListOfDebtors(chatId)
-            DELETE_HISTORY_CALLBACK -> deleteAllDebts(chatId, messageId)
-            NOT_DELETE_HISTORY_CALLBACK -> deleteAllDebtsNoOption(chatId, messageId)
-            else -> sendListOfDebtors(chatId)
+        if (isStringMatchShowMergePattern(text!!)) {
+            sendMergedDebtorCallback(chatId, messageId, text)
+        } else {
+            when (text) {
+                DEBTORS_LIST_CALLBACK -> sendListOfDebtors(chatId)
+                DELETE_HISTORY_CALLBACK -> deleteAllDebts(chatId, messageId)
+                NOT_DELETE_HISTORY_CALLBACK -> deleteAllDebtsNoOption(chatId, messageId)
+                else -> sendListOfDebtors(chatId)
+            }
         }
     }
 }
@@ -193,15 +197,19 @@ fun onMessage() {
 }
 
 private fun isStringMatchDebtPattern(str: String): Boolean {
-    return Regex(PATTERN_NEW_DEBTOR) matches str
+    return Regex(NEW_DEBTOR_PATTERN) matches str
 }
 
 private fun isStringMatchRepayPattern(str: String): Boolean {
-    return Regex(PATTERN_REPAY) matches str
+    return Regex(REPAY_PATTERN) matches str
 }
 
 fun isStringMatchMergePattern(str: String): Boolean {
-    return Regex(PATTERN_MERGE) matches str
+    return Regex(MERGE_PATTERN) matches str
+}
+
+fun isStringMatchShowMergePattern(str: String): Boolean {
+    return Regex(SHOW_MERGED_PATTERN) matches str
 }
 
 private fun getChatIdAndTextFromMessage(message: Message): ChatIdAndText {

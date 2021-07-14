@@ -50,6 +50,14 @@ fun formatMergedDebtorSuccess(count: Int, source: String, destination: String): 
     return MERGE_DEBTOR_SUCCESS.format(count, source, destination)
 }
 
+fun formatShowMergedDebtorButton(name: String):String {
+    return SHOW_MERGED_DEBTOR_BUTTON.format(name)
+}
+
+fun formatShowMergedCallback(name: String): String {
+    return SHOW_MERGED_DEBTOR_CALLBACK.format(name)
+}
+
 fun constructListOfAllDebtors(debtorsMap: Map<Debtor, List<Log>>): String {
     val debtors = debtorsMap.keys
     val totalAmount = formatTotalAmountOfDebtsRecord(debtors)
