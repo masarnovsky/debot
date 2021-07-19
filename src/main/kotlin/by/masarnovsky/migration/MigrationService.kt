@@ -124,7 +124,7 @@ data class UserMongo(
 ) {
 
     fun fromUserMongoToUserPostgres(): User {
-        return User(chatId, username, firstName, lastName, created, updated)
+        return User(chatId, username, firstName, lastName, created, updated, defaultCurrency = Currency.BYN)
     }
 }
 

@@ -123,14 +123,14 @@ data class Log(
 }
 
 data class User(
-    val chatId: Long,
-    var username: String?,
-    var firstName: String?,
-    var lastName: String?,
-    val created: LocalDateTime = TimeService.now(),
-    var updated: LocalDateTime = TimeService.now(),
-    var defaultLang: String = "RU",
-    var defaultCurrency: String = "BYN",
+        val chatId: Long,
+        var username: String?,
+        var firstName: String?,
+        var lastName: String?,
+        val created: LocalDateTime = TimeService.now(),
+        var updated: LocalDateTime = TimeService.now(),
+        var defaultLang: String = "RU",
+        var defaultCurrency: Currency,
 ) {
 
     companion object {
@@ -142,13 +142,15 @@ data class User(
             lastName = resultRow[Users.lastName],
             created = resultRow[Users.created],
             updated = resultRow[Users.updated],
+            defaultCurrency = resultRow[Users.defaultCurrency],
         )
 
         fun fromMessage(message: Message) = User(
             chatId = message.chat.id,
             username = message.chat.username,
             firstName = message.chat.first_name,
-            lastName = message.chat.last_name
+            lastName = message.chat.last_name,
+            defaultCurrency = Currency.BYN,
         )
     }
 }

@@ -189,7 +189,7 @@ fun onMessage() {
             } else if (text != null && isStringMatchRepayPattern(text)) {
                 repay(chatId, text)
             } else {
-                mainMenu(chatId)
+                unknownRequest(chatId)
             }
         } catch (ex: Exception) {
             logger.error { ex }

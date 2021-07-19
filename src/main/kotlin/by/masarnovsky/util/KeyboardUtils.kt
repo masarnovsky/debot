@@ -14,18 +14,18 @@ fun createDeleteAllDebtorsKeyboard(): InlineKeyboardMarkup {
     return InlineKeyboardMarkup(listOf(listOf(yes, no)))
 }
 
-fun createInlineQueryResultArticle(debtor: Debtor, logs: List<Log>): InlineQueryResultArticle {
+fun createInlineQueryResultArticle(debtor: Debtor, logs: List<Log>, currency: Currency): InlineQueryResultArticle {
     return InlineQueryResultArticle(
             id = UUID.randomUUID().toString(),
             title = debtor.name,
-            input_message_content = createInputTextMessageContent(debtor, logs),
-            description = formatDebtorSuggestionForInlineQuery(debtor),
+            input_message_content = createInputTextMessageContent(debtor, logs, currency),
+            description = formatDebtorSuggestionForInlineQuery(debtor, currency),
     )
 }
 
-fun createInputTextMessageContent(debtor: Debtor, logs: List<Log>): InputTextMessageContent {
+fun createInputTextMessageContent(debtor: Debtor, logs: List<Log>, currency: Currency): InputTextMessageContent {
     return InputTextMessageContent(
-            message_text = formatDebtorRecordForInlineQuery(debtor, logs),
+            message_text = formatDebtorRecordForInlineQuery(debtor, logs, currency),
             parse_mode = "HTML",
     )
 }

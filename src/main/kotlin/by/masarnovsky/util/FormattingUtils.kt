@@ -4,42 +4,43 @@ import by.masarnovsky.*
 import by.masarnovsky.Log.Companion.calculateHistoricalCredit
 import java.math.BigDecimal
 
-fun formatNewLogRecord(debtor: Debtor, logs: List<Log>): String {
-    return DEBTOR_RECORD.format(debtor.name, debtor.totalAmount, constructListOfLogs(debtor.totalAmount, logs))
+fun formatNewLogRecord(debtor: Debtor, currency: Currency, logs: List<Log>): String {
+    return DEBTOR_RECORD.format(debtor.name, debtor.totalAmount,currency.name, constructListOfLogs(debtor.totalAmount, logs))
 }
 
-fun formatRepayRecord(debtor: Debtor, log: Log, logs: List<Log>): String {
+fun formatRepayRecord(debtor: Debtor, log: Log, logs: List<Log>, currency: Currency): String {
     val end =
             if (debtor.totalAmount > BigDecimal.ZERO)
-                DEBTOR_CREDIT_AFTER_REPAY.format(debtor.totalAmount, constructListOfLogs(debtor.totalAmount, logs))
+                DEBTOR_CREDIT_AFTER_REPAY.format(debtor.totalAmount, currency.name, constructListOfLogs(debtor.totalAmount, logs))
             else
                 DEBTOR_ZERO_CREDIT
 
-    return DEBTOR_RETURN_RECORD.format(debtor.name, log.debit).plus(end)
+    return DEBTOR_RETURN_RECORD.format(debtor.name, log.debit, currency.name).plus(end)
 }
 
-fun formatDebtorRecordForInlineQuery(debtor: Debtor, logs: List<Log>): String {
+fun formatDebtorRecordForInlineQuery(debtor: Debtor, logs: List<Log>, currency: Currency): String {
     return DEBTOR_RECORD_FOR_INLINE_QUERY.format(
             debtor.name,
             debtor.totalAmount,
+            currency.name,
             constructListOfLogs(debtor.totalAmount, logs)
     )
 }
 
-fun formatDebtorShortRecord(debtor: Debtor, logs: List<Log>): String {
-    return DEBTOR_RECORD_SHORT.format(debtor.name, debtor.totalAmount, constructListOfLogs(debtor.totalAmount, logs))
+fun formatDebtorShortRecord(debtor: Debtor, logs: List<Log>, currency: Currency): String {
+    return DEBTOR_RECORD_SHORT.format(debtor.name, debtor.totalAmount, currency.name, constructListOfLogs(debtor.totalAmount, logs))
 }
 
-fun formatDebtorHistoryHeader(debtor: Debtor): String {
-    return DEBTOR_LOG_HISTORY_HEADER.format(debtor.name, debtor.totalAmount)
+fun formatDebtorHistoryHeader(debtor: Debtor, currency: Currency): String {
+    return DEBTOR_LOG_HISTORY_HEADER.format(debtor.name, debtor.totalAmount, currency.name)
 }
 
-fun formatDebtorHistoricalAmount(debtor: Debtor, logs: List<Log>): String {
-    return DEBTOR_HISTORICAL_CREDIT.format(debtor.name, calculateHistoricalCredit(logs))
+fun formatDebtorHistoricalAmount(debtor: Debtor, logs: List<Log>, currency: Currency): String {
+    return DEBTOR_HISTORICAL_CREDIT.format(debtor.name, calculateHistoricalCredit(logs), currency.name)
 }
 
-fun formatTotalAmountOfDebtsRecord(debtors: Set<Debtor>): String {
-    return CURRENT_DEBTS_TOTAL_AMOUNT.format(Debtor.totalAmount(debtors))
+fun formatTotalAmountOfDebtsRecord(debtors: Set<Debtor>, currency: Currency): String {
+    return CURRENT_DEBTS_TOTAL_AMOUNT.format(Debtor.totalAmount(debtors), currency.name)
 }
 
 fun formatMergedDebtorNotFound(source: String, destination: String, names: List<String>): String {
@@ -58,8 +59,8 @@ fun formatShowMergedCallback(name: String): String {
     return SHOW_MERGED_DEBTOR_CALLBACK.format(name)
 }
 
-fun formatDebtorSuggestionForInlineQuery(debtor: Debtor): String {
-    return DEBTOR_SUGGESTION_FOR_INLINE_QUERY.format(debtor.name, debtor.totalAmount)
+fun formatDebtorSuggestionForInlineQuery(debtor: Debtor, currency: Currency): String {
+    return DEBTOR_SUGGESTION_FOR_INLINE_QUERY.format(debtor.name, debtor.totalAmount, currency.name)
 }
 
 fun formatCurrencyCallback(name: String): String {
@@ -70,11 +71,11 @@ fun formatCurrentCurrency(currency: Currency): String {
     return CURRENT_CURRENCY.format(currency.name)
 }
 
-fun constructListOfAllDebtors(debtorsMap: Map<Debtor, List<Log>>): String {
+fun constructListOfAllDebtors(debtorsMap: Map<Debtor, List<Log>>, currency: Currency): String {
     val debtors = debtorsMap.keys
-    val totalAmount = formatTotalAmountOfDebtsRecord(debtors)
+    val totalAmount = formatTotalAmountOfDebtsRecord(debtors, currency)
     val debtorsRows =
-            debtors.joinToString(separator = "\n") { debtor -> formatDebtorShortRecord(debtor, debtorsMap[debtor]!!) }
+            debtors.joinToString(separator = "\n") { debtor -> formatDebtorShortRecord(debtor, debtorsMap[debtor]!!, currency) }
     return totalAmount + debtorsRows
 }
 
