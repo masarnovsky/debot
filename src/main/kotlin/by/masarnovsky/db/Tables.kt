@@ -1,5 +1,6 @@
 package by.masarnovsky.db
 
+import by.masarnovsky.Currency
 import org.jetbrains.exposed.dao.id.EntityID
 import org.jetbrains.exposed.dao.id.IdTable
 import org.jetbrains.exposed.dao.id.LongIdTable
@@ -17,7 +18,7 @@ object Users : ChatIdTable() {
     val firstName = varchar("first_name", 200).nullable()
     val lastName = varchar("last_name", 200).nullable()
     val defaultLang = varchar("default_lang", 10)
-    val defaultCurrency = varchar("default_currency", 10)
+    val defaultCurrency = enumerationByName("default_currency", 10, Currency::class)
     val created = datetime("created")
     val updated = datetime("updated")
     override val primaryKey = PrimaryKey(id, name = "users_pkey")

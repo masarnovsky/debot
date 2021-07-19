@@ -5,11 +5,14 @@ const val NEW_DEBTOR_PATTERN = "(?<name>[\\p{L}\\s]*) (?<amount>[0-9.,]+) (?<com
 const val MERGE_PATTERN = "/merge (?<source>[\\p{L}\\s]*) (?<destination>[\\p{L}\\s]*)"
 const val REPAY_PATTERN = "(?<name>[\\p{L}\\s]*) (?<amount>-[0-9.,]+)"
 const val SHOW_MERGED_PATTERN = "show_merged_(?<name>[\\p{L}\\s]*)"
+const val SET_CURRENCY_PATTERN = "set_currency_(?<currency>[A-Z]*)"
 
 const val DEBTORS_LIST_CALLBACK = "callback_list"
 const val DELETE_HISTORY_CALLBACK = "delete_history_yes"
 const val NOT_DELETE_HISTORY_CALLBACK = "delete_history_no"
 const val SHOW_MERGED_DEBTOR_CALLBACK = "show_merged_%s"
+const val SET_LANG_CALLBACK = "set_lang_%s"
+const val SET_CURRENCY_CALLBACK = "set_currency_%s"
 
 const val START_COMMAND = "/start"
 const val SHOW_COMMAND = "/show"
