@@ -182,13 +182,17 @@ private fun addNewLogToDebtor(name: String, amount: BigDecimal, comment: String,
 
     val pair = transaction {
         var debtor = findDebtorByUserIdAndName(chatId, name)
-        val (credit, debit) = calculateCreditAndDebit(amount)
+        var (credit, debit) = calculateCreditAndDebit(amount)
 
         if (debtor == null) {
             debtor = Debtor(chatId, name, amount)
             debtor.id = insertDebtor(debtor)
         } else {
-            debtor.totalAmount += amount
+            val recalculatedAmount = calculateAmountToAvoidNegativeBalance(debtor.totalAmount, amount)
+            val (recalculatedCredit, recalculatedDebit) = calculateCreditAndDebit(recalculatedAmount)
+            credit = recalculatedCredit
+            debit = recalculatedDebit
+            debtor.totalAmount += recalculatedAmount
             updateDebtor(debtor)
         }
 
@@ -205,6 +209,14 @@ private fun addNewLogToDebtor(name: String, amount: BigDecimal, comment: String,
     }
 
     return pair
+}
+
+
+fun calculateAmountToAvoidNegativeBalance(totalAmount: BigDecimal, amount: BigDecimal): BigDecimal {
+    if (totalAmount > BigDecimal.ZERO && amount < BigDecimal.ZERO && (totalAmount + amount < BigDecimal.ZERO)) {
+        return totalAmount.multiply(BigDecimal(-1))
+    }
+    return amount
 }
 
 fun sendHowtoMessage(chatId: Long) {
