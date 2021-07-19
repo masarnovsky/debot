@@ -10,19 +10,19 @@ fun formatNewLogRecord(debtor: Debtor, logs: List<Log>): String {
 
 fun formatRepayRecord(debtor: Debtor, log: Log, logs: List<Log>): String {
     val end =
-        if (debtor.totalAmount > BigDecimal.ZERO)
-            DEBTOR_CREDIT_AFTER_REPAY.format(debtor.totalAmount, constructListOfLogs(debtor.totalAmount, logs))
-        else
-            DEBTOR_ZERO_CREDIT
+            if (debtor.totalAmount > BigDecimal.ZERO)
+                DEBTOR_CREDIT_AFTER_REPAY.format(debtor.totalAmount, constructListOfLogs(debtor.totalAmount, logs))
+            else
+                DEBTOR_ZERO_CREDIT
 
     return DEBTOR_RETURN_RECORD.format(debtor.name, log.debit).plus(end)
 }
 
 fun formatDebtorRecordForInlineQuery(debtor: Debtor, logs: List<Log>): String {
     return DEBTOR_RECORD_FOR_INLINE_QUERY.format(
-        debtor.name,
-        debtor.totalAmount,
-        constructListOfLogs(debtor.totalAmount, logs)
+            debtor.name,
+            debtor.totalAmount,
+            constructListOfLogs(debtor.totalAmount, logs)
     )
 }
 
@@ -50,7 +50,7 @@ fun formatMergedDebtorSuccess(count: Int, source: String, destination: String): 
     return MERGE_DEBTOR_SUCCESS.format(count, source, destination)
 }
 
-fun formatShowMergedDebtorButton(name: String):String {
+fun formatShowMergedDebtorButton(name: String): String {
     return SHOW_MERGED_DEBTOR_BUTTON.format(name)
 }
 
@@ -58,11 +58,23 @@ fun formatShowMergedCallback(name: String): String {
     return SHOW_MERGED_DEBTOR_CALLBACK.format(name)
 }
 
+fun formatDebtorSuggestionForInlineQuery(debtor: Debtor): String {
+    return DEBTOR_SUGGESTION_FOR_INLINE_QUERY.format(debtor.name, debtor.totalAmount)
+}
+
+fun formatCurrencyCallback(name: String): String {
+    return SET_CURRENCY_CALLBACK.format(name)
+}
+
+fun formatCurrentCurrency(currency: Currency): String {
+    return CURRENT_CURRENCY.format(currency.name)
+}
+
 fun constructListOfAllDebtors(debtorsMap: Map<Debtor, List<Log>>): String {
     val debtors = debtorsMap.keys
     val totalAmount = formatTotalAmountOfDebtsRecord(debtors)
     val debtorsRows =
-        debtors.joinToString(separator = "\n") { debtor -> formatDebtorShortRecord(debtor, debtorsMap[debtor]!!) }
+            debtors.joinToString(separator = "\n") { debtor -> formatDebtorShortRecord(debtor, debtorsMap[debtor]!!) }
     return totalAmount + debtorsRows
 }
 
@@ -74,13 +86,13 @@ fun constructListOfDebtorNames(names: List<String>): String {
 fun constructListOfLogs(totalAmount: BigDecimal, logs: List<Log>): String {
     var amount = totalAmount
     return logs
-        .sortedByDescending { it.created }
-        .filter { log ->
-            if (log.comment != REPAY_VALUE) amount -= log.credit //todo: do smth with it
-            (amount + log.credit) > BigDecimal.ZERO
-        }
-        .filter { it.comment != REPAY_VALUE }
-        .joinToString(", ") { log -> log.comment }
+            .sortedByDescending { it.created }
+            .filter { log ->
+                if (log.comment != REPAY_VALUE) amount -= log.credit //todo: do smth with it
+                (amount + log.credit) > BigDecimal.ZERO
+            }
+            .filter { it.comment != REPAY_VALUE }
+            .joinToString(", ") { log -> log.comment }
 }
 
 fun constructDeleteDebtorMessageBasedOnDeletedCount(name: String, count: Int): String {

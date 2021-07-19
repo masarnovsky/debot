@@ -1,6 +1,7 @@
 package by.masarnovsky.util
 
 import by.masarnovsky.*
+import by.masarnovsky.Currency
 import com.elbekD.bot.types.InlineKeyboardButton
 import com.elbekD.bot.types.InlineKeyboardMarkup
 import com.elbekD.bot.types.InlineQueryResultArticle
@@ -15,23 +16,23 @@ fun createDeleteAllDebtorsKeyboard(): InlineKeyboardMarkup {
 
 fun createInlineQueryResultArticle(debtor: Debtor, logs: List<Log>): InlineQueryResultArticle {
     return InlineQueryResultArticle(
-        id = UUID.randomUUID().toString(),
-        title = debtor.name,
-        input_message_content = createInputTextMessageContent(debtor, logs),
-        description = DEBTOR_SUGGESTION_FOR_INLINE_QUERY.format(debtor.name, debtor.totalAmount),
+            id = UUID.randomUUID().toString(),
+            title = debtor.name,
+            input_message_content = createInputTextMessageContent(debtor, logs),
+            description = formatDebtorSuggestionForInlineQuery(debtor),
     )
 }
 
 fun createInputTextMessageContent(debtor: Debtor, logs: List<Log>): InputTextMessageContent {
     return InputTextMessageContent(
-        message_text = formatDebtorRecordForInlineQuery(debtor, logs),
-        parse_mode = "HTML",
+            message_text = formatDebtorRecordForInlineQuery(debtor, logs),
+            parse_mode = "HTML",
     )
 }
 
 fun createMainMenuKeyboard(): InlineKeyboardMarkup {
-    val list = InlineKeyboardButton(text = LIST_OF_ALL_BUTTON, callback_data = DEBTORS_LIST_CALLBACK)
-    return InlineKeyboardMarkup(listOf(listOf(list)))
+    val list = Currency.values().map { InlineKeyboardButton(text = it.name, callback_data = formatCurrencyCallback(it.name)) }
+    return InlineKeyboardMarkup(listOf(list))
 }
 
 fun createShowMergedUserKeyboard(name: String): InlineKeyboardMarkup {

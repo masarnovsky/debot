@@ -129,8 +129,8 @@ data class User(
     var lastName: String?,
     val created: LocalDateTime = TimeService.now(),
     var updated: LocalDateTime = TimeService.now(),
-    val defaultLang: String = "RU",
-    val defaultCurrency: String = "BYN",
+    var defaultLang: String = "RU",
+    var defaultCurrency: String = "BYN",
 ) {
 
     companion object {

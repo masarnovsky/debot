@@ -166,6 +166,8 @@ fun onCallbackQuery() {
 
         if (isStringMatchShowMergePattern(text!!)) {
             sendMergedDebtorCallback(chatId, messageId, text)
+        } else if (isStringMatchSetCurrencyPattern(text)) {
+            setCurrency(chatId, messageId, text)
         } else {
             when (text) {
                 DEBTORS_LIST_CALLBACK -> sendListOfDebtors(chatId)
@@ -210,6 +212,10 @@ fun isStringMatchMergePattern(str: String): Boolean {
 
 fun isStringMatchShowMergePattern(str: String): Boolean {
     return Regex(SHOW_MERGED_PATTERN) matches str
+}
+
+fun isStringMatchSetCurrencyPattern(str: String): Boolean {
+    return Regex(SET_CURRENCY_PATTERN) matches str
 }
 
 private fun getChatIdAndTextFromMessage(message: Message): ChatIdAndText {

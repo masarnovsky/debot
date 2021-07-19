@@ -1,6 +1,7 @@
 package by.masarnovsky.service
 
 import by.masarnovsky.*
+import by.masarnovsky.Currency
 import by.masarnovsky.User
 import by.masarnovsky.db.*
 import by.masarnovsky.util.*
@@ -247,6 +248,23 @@ fun sendMergedDebtorCallback(chatId: Long, messageId: Int, text: String) {
     val match = Regex(SHOW_MERGED_PATTERN).find(text)!!
     val (name) = match.destructured
     showDebtorLogs(chatId, name)
+}
+
+fun setCurrency(chatId: Long, messageId: Int, text: String) {
+    val match = Regex(SET_CURRENCY_PATTERN).find(text)!!
+    val (currency) = match.destructured
+
+    val newCurrency = Currency.valueOf(currency)
+
+    connection()
+
+    transaction {
+        val user = findUserByChatId(chatId)!!
+        user.defaultCurrency = newCurrency.name
+        updateUser(user)
+    }
+
+    editMessageTextAndInlineKeyboard(chatId, messageId, formatCurrentCurrency(newCurrency), null)
 }
 
 private fun findDebtorsWithLogs(chatId: Long): Map<Debtor, List<Log>> {
