@@ -11,6 +11,13 @@ import mu.KotlinLogging
 import java.io.FileInputStream
 import java.util.*
 
+const val IS_PROD = "IS_PROD"
+const val BOT_TOKEN = "BOT_TOKEN"
+const val BOT_USERNAME = "BOT_USERNAME"
+const val DATABASE_URL = "DATABASE_URL"
+const val DATABASE = "DATABASE"
+const val OWNER_ID = "OWNER_ID"
+const val HEROKU_POSTGRESQL_GOLD_URL = "HEROKU_POSTGRESQL_GOLD_URL"
 
 lateinit var token: String
 lateinit var username: String
@@ -35,27 +42,27 @@ fun main() {
 }
 
 private fun loadProperties() {
-    if (System.getenv()["IS_PROD"].toString() != "null") {
+    if (System.getenv()[IS_PROD].toString() != "null") {
         logger.info { "setup prod environment" }
         isProd = true
-        token = System.getenv()["BOT_TOKEN"].toString()
-        username = System.getenv()["BOT_USERNAME"].toString()
-        databaseUrl = System.getenv()["DATABASE_URL"].toString()
-        database = System.getenv()["DATABASE"].toString()
-        ownerId = System.getenv()["OWNER_ID"].toString()
-        postgresUrl = System.getenv()["HEROKU_POSTGRESQL_GOLD_URL"].toString()
+        token = System.getenv()[BOT_TOKEN].toString()
+        username = System.getenv()[BOT_USERNAME].toString()
+        databaseUrl = System.getenv()[DATABASE_URL].toString()
+        database = System.getenv()[DATABASE].toString()
+        ownerId = System.getenv()[OWNER_ID].toString()
+        postgresUrl = System.getenv()[HEROKU_POSTGRESQL_GOLD_URL].toString()
     } else {
         logger.info { "setup test environment" }
         val properties = Properties()
         val propertiesFile = System.getProperty("user.dir") + "\\test_env.properties"
         val inputStream = FileInputStream(propertiesFile)
         properties.load(inputStream)
-        token = properties.getProperty("BOT_TOKEN")
-        username = properties.getProperty("BOT_USERNAME")
-        databaseUrl = properties.getProperty("DATABASE_URL")
-        database = properties.getProperty("DATABASE")
-        ownerId = properties.getProperty("OWNER_ID")
-        postgresUrl = properties.getProperty("HEROKU_POSTGRESQL_GOLD_URL")
+        token = properties.getProperty(BOT_TOKEN)
+        username = properties.getProperty(BOT_USERNAME)
+        databaseUrl = properties.getProperty(DATABASE_URL)
+        database = properties.getProperty(DATABASE)
+        ownerId = properties.getProperty(OWNER_ID)
+        postgresUrl = properties.getProperty(HEROKU_POSTGRESQL_GOLD_URL)
     }
     setupPostgresCredentials()
 }
