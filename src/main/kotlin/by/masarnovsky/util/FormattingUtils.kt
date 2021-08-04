@@ -5,7 +5,7 @@ import by.masarnovsky.Log.Companion.calculateHistoricalCredit
 import java.math.BigDecimal
 
 fun formatNewLogRecord(debtor: Debtor, currency: Currency, logs: List<Log>): String {
-    return DEBTOR_RECORD.format(debtor.name, debtor.totalAmount,currency.name, constructListOfLogs(debtor.totalAmount, logs))
+    return DEBTOR_RECORD.format(debtor.name, debtor.totalAmount, currency.name, constructListOfLogs(debtor.totalAmount, logs))
 }
 
 fun formatRepayRecord(debtor: Debtor, log: Log, logs: List<Log>, currency: Currency): String {
@@ -74,8 +74,9 @@ fun formatCurrentCurrency(currency: Currency): String {
 fun constructListOfAllDebtors(debtorsMap: Map<Debtor, List<Log>>, currency: Currency): String {
     val debtors = debtorsMap.keys
     val totalAmount = formatTotalAmountOfDebtsRecord(debtors, currency)
-    val debtorsRows =
-            debtors.joinToString(separator = "\n") { debtor -> formatDebtorShortRecord(debtor, debtorsMap[debtor]!!, currency) }
+    val debtorsRows = debtors
+            .sortedByDescending { it.totalAmount }
+            .joinToString(separator = "\n") { debtor -> formatDebtorShortRecord(debtor, debtorsMap[debtor]!!, currency) }
     return totalAmount + debtorsRows
 }
 
