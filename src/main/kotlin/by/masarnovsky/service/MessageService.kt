@@ -21,3 +21,7 @@ fun editMessageTextAndInlineKeyboard(chatId: Long, messageId: Int, text: String,
         markup = keyboard
     )
 }
+
+fun sendImage(chatId: Long, imageUrl: String) {
+    bot.sendPhoto(chatId = chatId, photo = imageUrl)
+}

@@ -2,10 +2,7 @@ package by.masarnovsky.util
 
 import by.masarnovsky.*
 import by.masarnovsky.Currency
-import com.elbekD.bot.types.InlineKeyboardButton
-import com.elbekD.bot.types.InlineKeyboardMarkup
-import com.elbekD.bot.types.InlineQueryResultArticle
-import com.elbekD.bot.types.InputTextMessageContent
+import com.elbekD.bot.types.*
 import java.util.*
 
 fun createDeleteAllDebtorsKeyboard(): InlineKeyboardMarkup {
@@ -20,6 +17,14 @@ fun createInlineQueryResultArticle(debtor: Debtor, logs: List<Log>, currency: Cu
             title = debtor.name,
             input_message_content = createInputTextMessageContent(debtor, logs, currency),
             description = formatDebtorSuggestionForInlineQuery(debtor, currency),
+    )
+}
+
+fun createInlineQueryResultPhoto(url: String): InlineQueryResultPhoto {
+    return InlineQueryResultPhoto(
+            id = UUID.randomUUID().toString(),
+            photo_url = url,
+            thumb_url = url,
     )
 }
 

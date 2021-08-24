@@ -1,6 +1,7 @@
 package by.masarnovsky
 
 import by.masarnovsky.db.Debtors
+import by.masarnovsky.db.Images
 import by.masarnovsky.db.Logs
 import by.masarnovsky.db.Users
 import by.masarnovsky.service.TimeService
@@ -151,6 +152,19 @@ data class User(
             firstName = message.chat.first_name,
             lastName = message.chat.last_name,
             defaultCurrency = Currency.BYN,
+        )
+    }
+}
+
+data class Image(
+        val id: Long,
+        val url: String,
+) {
+    companion object {
+
+        fun fromRow(resultRow: ResultRow) = Image(
+                id = resultRow[Images.id].value,
+                url = resultRow[Images.url],
         )
     }
 }

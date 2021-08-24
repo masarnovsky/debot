@@ -43,3 +43,8 @@ object Logs : LongIdTable() {
     val type = varchar("type", 10)
     override val primaryKey = PrimaryKey(id, name = "logs_pk")
 }
+
+object Images : LongIdTable() {
+    val url = varchar("url", 200)
+    override val primaryKey = PrimaryKey(id, name = "images_pk")
+}

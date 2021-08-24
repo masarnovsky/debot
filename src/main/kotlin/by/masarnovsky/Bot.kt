@@ -87,6 +87,7 @@ private fun setBehaviour() {
     mergeCommand()
     migrateUsersCommand()
     migrateDebtorsAndDebtsCommand()
+    memeCommand()
     onInlineQuery()
     onCallbackQuery()
     onMessage()
@@ -158,11 +159,22 @@ fun migrateDebtorsAndDebtsCommand() {
     }
 }
 
+fun memeCommand() {
+    bot.onCommand(MEME_COMMAND) { message, _ ->
+        val (chatId, _) = getChatIdAndTextFromMessage(message)
+        sendMeme(chatId)
+    }
+}
+
 fun onInlineQuery() {
     bot.onInlineQuery { inlineQuery ->
 
-        val (chatId, text) = getChatIdAndTextFromInlineQuery(inlineQuery)
-        returnListOfDebtorsForInlineQuery(chatId, text!!)
+        val (chatId, queryId, query) = getChatIdAndQueryIdAndTextFromInlineQuery(inlineQuery)
+        if (query == MEME_COMMAND) {
+            returnListOfMemesForInlineQuery(chatId, queryId!!)
+        } else {
+            returnListOfDebtorsForInlineQuery(chatId, queryId!!)
+        }
     }
 }
 
@@ -233,10 +245,12 @@ private fun getChatIdAndTextFromCallbackQuery(callback: CallbackQuery): ChatIdAn
     return ChatIdAndMessageIdAndText(callback.message?.chat?.id!!, callback.message?.message_id!!, callback.data!!)
 }
 
-private fun getChatIdAndTextFromInlineQuery(inlineQuery: InlineQuery): ChatIdAndText {
-    return ChatIdAndText(inlineQuery.from.id.toLong(), inlineQuery.id)
+private fun getChatIdAndQueryIdAndTextFromInlineQuery(inlineQuery: InlineQuery): InlineQueryChatIdAndIdAndText {
+    return InlineQueryChatIdAndIdAndText(inlineQuery.from.id.toLong(), inlineQuery.id, inlineQuery.query)
 }
 
 private data class ChatIdAndText(val chatId: Long, val text: String?)
+
+private data class InlineQueryChatIdAndIdAndText(val chatId: Long, val queryId:String?, val text: String?)
 
 private data class ChatIdAndMessageIdAndText(val chatId: Long, val messageId: Int, val text: String?)

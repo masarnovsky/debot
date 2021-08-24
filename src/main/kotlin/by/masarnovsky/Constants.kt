@@ -23,3 +23,4 @@ const val MERGE_COMMAND = "/merge"
 
 const val MIGRATE_USERS_COMMAND = "/migrateu"
 const val MIGRATE_DEBTORS_COMMAND = "/migrated"
+const val MEME_COMMAND = "/meme"

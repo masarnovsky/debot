@@ -93,16 +93,27 @@ fun deleteAllDebtsNoOption(chatId: Long, messageId: Int) {
     editMessageTextAndInlineKeyboard(chatId, messageId, NOT_DELETE_HISTORY, null)
 }
 
+fun returnListOfMemesForInlineQuery(chatId: Long, queryId: String) {
+    logger.info { "call returnListOfMemesForInlineQuery for $chatId with queryId=$queryId" }
+
+    connection()
+    val images = transaction {
+        return@transaction findAllImages()
+    }
+    val queries = images.map { image -> createInlineQueryResultPhoto(image.url) }
+    bot.answerInlineQuery(queryId, queries)
+}
+
 fun returnListOfDebtorsForInlineQuery(chatId: Long, queryId: String) {
     logger.info { "call returnListOfDebtorsForInlineQuery for $chatId with queryId=$queryId" }
 
-    val map = findDebtorsWithLogs(chatId)
+    val debtors = findDebtorsWithLogs(chatId)
 
     connection()
     val currency = transaction {
         return@transaction findUserByChatId(chatId)!!.defaultCurrency
     }
-    val queries = map.keys.map { debtor -> createInlineQueryResultArticle(debtor, map[debtor]!!, currency) }
+    val queries = debtors.keys.map { debtor -> createInlineQueryResultArticle(debtor, debtors[debtor]!!, currency) }
     bot.answerInlineQuery(queryId, queries)
 }
 
@@ -174,6 +185,17 @@ fun showDebtorLogs(chatId: Long, name: String) {
     } else {
         sendMessage(chatId, DEBTOR_NOT_FOUND)
     }
+}
+
+fun sendMeme(chatId: Long) {
+    logger.info { "send meme for $chatId" }
+    connection()
+
+    val url = transaction {
+        return@transaction findAllImages().random().url
+    }
+
+    sendImage(chatId, url)
 }
 
 private fun addNewLogToDebtor(name: String, amount: BigDecimal, comment: String, chatId: Long): Pair<Debtor, Log> {
