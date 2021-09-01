@@ -31,6 +31,7 @@ const val NO = "Нет"
 const val SHOW_MERGED_DEBTOR_BUTTON = "Показать долги %s"
 const val CURRENT_DEBTS_TOTAL_AMOUNT = "Общая сумма долгов равна <b>%.2f</b> %s\n"
 const val DEBTOR_HISTORICAL_CREDIT = "За все время вы одолжили %s <b>%.2f</b> %s\n"
+const val ADMIN_MERGE_SUCCESS = "Пользователь %d.\nМигрировано %d транзакций должнику %s. %s был удален."
 const val HOWTO_INFO = """
 Добавляй должника в таком формате: 
 <b>имя 66.6 комментарий</b> 

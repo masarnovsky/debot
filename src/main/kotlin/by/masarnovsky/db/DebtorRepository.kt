@@ -16,6 +16,14 @@ fun findDebtorByUserIdAndName(chatId: Long, name: String): Debtor? {
         ?.let { Debtor.fromRow(it) }
 }
 
+fun findDebtorByUserIdAndId(chatId: Long, id: Long): Debtor? {
+    logger.info { "find debtor with id $id for user $chatId" }
+    return Debtors
+            .select { (Debtors.userId eq chatId) and (Debtors.id eq id) }
+            .firstOrNull()
+            ?.let { Debtor.fromRow(it) }
+}
+
 fun insertDebtor(debtor: Debtor): Long {
     logger.info { "save new debtor $debtor for user ${debtor.userId}" }
     return Debtors.insertAndGetId {
@@ -54,4 +62,8 @@ fun deleteAllDebtorsForUser(chatId: Long): Int {
 
 fun deleteDebtorForUserByName(chatId: Long, name: String): Int {
     return Debtors.deleteWhere { (Debtors.userId eq chatId) and (Debtors.name eq name.toLowerCase()) }
+}
+
+fun deleteDebtorForUserById(chatId: Long, id: Long): Int {
+    return Debtors.deleteWhere { (Debtors.userId eq chatId) and (Debtors.id eq id) }
 }

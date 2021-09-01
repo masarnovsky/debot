@@ -71,6 +71,10 @@ fun formatCurrentCurrency(currency: Currency): String {
     return CURRENT_CURRENCY.format(currency.name)
 }
 
+fun formatSuccessfulAdminMergeMessage(chatId: Long, logCount: Int, destinationUser: String, sourceUser: String): String {
+    return ADMIN_MERGE_SUCCESS.format(chatId, logCount, destinationUser, sourceUser)
+}
+
 fun constructListOfAllDebtors(debtorsMap: Map<Debtor, List<Log>>, currency: Currency): String {
     val debtors = debtorsMap.keys
     val totalAmount = formatTotalAmountOfDebtsRecord(debtors, currency)

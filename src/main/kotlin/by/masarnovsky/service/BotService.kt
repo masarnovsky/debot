@@ -292,6 +292,39 @@ fun mergeDebtors(chatId: Long, command: String) {
     }
 }
 
+fun adminMergeForDebtors(command: String) {
+    logger.info { "call adminMergeForDebtors method" }
+
+    if (isStringMatchAdminMergeByDebtorIdPattern(command)) {
+        val ids = ADMIN_MERGE_BY_DEBTOR_ID_PATTERN.toRegex().find(command)!!
+        val (userId, source, destination) = ids.destructured
+        val chatId = userId.toLong()
+
+        connection()
+
+        transaction {
+            val sourceUser = findDebtorByUserIdAndId(chatId, source.toLong())
+            val destinationUser = findDebtorByUserIdAndId(chatId, destination.toLong())
+            if (sourceUser != null && destinationUser != null && sourceUser.id != destinationUser.id) {
+                val sourceLogs = findLogsForDebtorByDebtorId(sourceUser.id!!)
+                val mergedTransactions = sourceLogs
+                    .map { sourceLog ->
+                        addNewLogToDebtor(
+                                destinationUser.name,
+                                sourceLog.getAmountAsRawValue(),
+                                sourceLog.comment,
+                                chatId
+                        )
+                    }.count()
+                deleteDebtorForUserById(chatId, sourceUser.id!!)
+                sendMessage(chatId, formatSuccessfulAdminMergeMessage(chatId, mergedTransactions, destinationUser.name, sourceUser.name))
+            } else {
+                sendMessage(chatId, COMMON_ERROR)
+            }
+        }
+    }
+}
+
 fun sendMergedDebtorCallback(chatId: Long, messageId: Int, text: String) {
     val match = Regex(SHOW_MERGED_PATTERN).find(text)!!
     val (name) = match.destructured

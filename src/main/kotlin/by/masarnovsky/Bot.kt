@@ -79,15 +79,21 @@ private fun setupPostgresCredentials() {
 }
 
 private fun setBehaviour() {
+    // commands
     startCommand()
     showAllCommand()
     showPersonDebtsCommand()
     deleteCommand()
     howtoCommand()
     mergeCommand()
+    memeCommand()
+
+    // admin commands
     migrateUsersCommand()
     migrateDebtorsAndDebtsCommand()
-    memeCommand()
+    adminMergeForDebtorsCommand()
+
+    // other
     onInlineQuery()
     onCallbackQuery()
     onMessage()
@@ -155,6 +161,15 @@ fun migrateDebtorsAndDebtsCommand() {
         val (chatId, _) = getChatIdAndTextFromMessage(message)
         if (chatId == ownerId.toLong()) {
             replicateMongoDebtorsAndDebts()
+        }
+    }
+}
+
+fun adminMergeForDebtorsCommand() {
+    bot.onCommand(ADMIN_MERGE_DEBTOR_COMMAND) { message, _ ->
+        val (chatId, text) = getChatIdAndTextFromMessage(message)
+        if (chatId == ownerId.toLong()) {
+            adminMergeForDebtors(text!!)
         }
     }
 }
@@ -227,6 +242,10 @@ private fun isStringMatchRepayPattern(str: String): Boolean {
 
 fun isStringMatchMergePattern(str: String): Boolean {
     return Regex(MERGE_PATTERN) matches str
+}
+
+fun isStringMatchAdminMergeByDebtorIdPattern(str: String): Boolean {
+    return Regex(ADMIN_MERGE_BY_DEBTOR_ID_PATTERN) matches str
 }
 
 fun isStringMatchShowMergePattern(str: String): Boolean {
