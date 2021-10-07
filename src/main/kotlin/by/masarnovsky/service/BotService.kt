@@ -56,7 +56,7 @@ fun newDebt(chatId: Long, command: String) {
     logger.info { "call newDebt method for $chatId" }
     val match = NEW_DEBTOR_PATTERN.toRegex().find(command)!!
     val (name, amount, comment) = match.destructured
-    val (debtor, _) = addNewLogToDebtor(name, amount.toBigDecimal(), comment, chatId)
+    val (debtor, _) = newLog(name, amount.toBigDecimal(), comment, chatId)
 
     connection()
     val text = transaction {
@@ -73,7 +73,7 @@ fun repay(chatId: Long, command: String) {
     val match = Regex(REPAY_PATTERN).find(command)!!
     val (name, amount) = match.destructured
     try {
-        val (debtor, log) = addNewLogToDebtor(name, amount.toBigDecimal(), REPAY_VALUE, chatId)
+        val (debtor, log) = newLog(name, amount.toBigDecimal(), REPAY_VALUE, chatId)
 
         connection()
         val text = transaction {
@@ -198,7 +198,7 @@ fun sendMeme(chatId: Long) {
     sendImage(chatId, url)
 }
 
-private fun addNewLogToDebtor(name: String, amount: BigDecimal, comment: String, chatId: Long): Pair<Debtor, Log> {
+private fun newLog(name: String, amount: BigDecimal, comment: String, chatId: Long): Pair<Debtor, Log> {
     logger.info { "call addNewLogToDebtor($name, $amount, $comment, $chatId)" }
     connection()
 
@@ -255,11 +255,29 @@ fun mergeDebtors(chatId: Long, command: String) {
         connection()
 
         val mergedLogsCount = transaction {
-            val existedNames = findDebtorsForUser(chatId).map { it.name }
             val sourceUser = findDebtorByUserIdAndName(chatId, source)
             val destinationUser = findDebtorByUserIdAndName(chatId, destination)
 
-            if (sourceUser == null || destinationUser == null) {
+            if (source.equals(destination, ignoreCase = true)) {
+                val duplicates = findDuplicatesByUserIdAndName(chatId, source)
+                var updated = 0
+                if (duplicates.size == 2) {
+                    val sourceLogs = findLogsForDebtorByDebtorId(duplicates[1].id!!)
+                    updated = sourceLogs
+                            .map { sourceLog ->
+                                newLog(
+                                        duplicates[0].name,
+                                        sourceLog.getAmountAsRawValue(),
+                                        sourceLog.comment,
+                                        chatId
+                                )
+                            }
+                            .count()
+                }
+                if (updated > 0) deleteDebtorForUserById(chatId, duplicates[1].id!!)
+                return@transaction updated
+            } else if (sourceUser == null || destinationUser == null) {
+                val existedNames = findDebtorsForUser(chatId).map { it.name }
                 sendMessage(chatId, formatMergedDebtorNotFound(source, destination, existedNames))
                 return@transaction 0
             } else if (sourceUser.id == destinationUser.id) {
@@ -269,7 +287,7 @@ fun mergeDebtors(chatId: Long, command: String) {
                 val sourceLogs = findLogsForDebtorByDebtorId(sourceUser.id!!)
                 return@transaction sourceLogs
                         .map { sourceLog ->
-                            addNewLogToDebtor(
+                            newLog(
                                     destinationUser.name,
                                     sourceLog.getAmountAsRawValue(),
                                     sourceLog.comment,
@@ -309,7 +327,7 @@ fun adminMergeForDebtors(command: String) {
                 val sourceLogs = findLogsForDebtorByDebtorId(sourceUser.id!!)
                 val mergedTransactions = sourceLogs
                     .map { sourceLog ->
-                        addNewLogToDebtor(
+                        newLog(
                                 destinationUser.name,
                                 sourceLog.getAmountAsRawValue(),
                                 sourceLog.comment,

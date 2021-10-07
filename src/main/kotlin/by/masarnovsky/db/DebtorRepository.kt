@@ -24,6 +24,13 @@ fun findDebtorByUserIdAndId(chatId: Long, id: Long): Debtor? {
             ?.let { Debtor.fromRow(it) }
 }
 
+fun findDuplicatesByUserIdAndName(chatId: Long, name: String): List<Debtor> {
+    logger.info { "find debtor with name $name for user $chatId" }
+    return Debtors
+            .select { (Debtors.userId eq chatId) and (Debtors.name eq name.toLowerCase()) }
+            .map { Debtor.fromRow(it) }
+}
+
 fun insertDebtor(debtor: Debtor): Long {
     logger.info { "save new debtor $debtor for user ${debtor.userId}" }
     return Debtors.insertAndGetId {
