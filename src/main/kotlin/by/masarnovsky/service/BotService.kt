@@ -56,7 +56,7 @@ fun newDebt(chatId: Long, command: String) {
     logger.info { "call newDebt method for $chatId" }
     val match = NEW_DEBTOR_PATTERN.toRegex().find(command)!!
     val (name, amount, comment) = match.destructured
-    val (debtor, _) = newLog(name, amount.toBigDecimal(), comment, chatId)
+    val (debtor, _) = newLogRecord(name, amount.toBigDecimal(), comment, chatId)
 
     connection()
     val text = transaction {
@@ -73,7 +73,7 @@ fun repay(chatId: Long, command: String) {
     val match = Regex(REPAY_PATTERN).find(command)!!
     val (name, amount) = match.destructured
     try {
-        val (debtor, log) = newLog(name, amount.toBigDecimal(), REPAY_VALUE, chatId)
+        val (debtor, log) = newLogRecord(name, amount.toBigDecimal(), REPAY_VALUE, chatId)
 
         connection()
         val text = transaction {
@@ -198,31 +198,35 @@ fun sendMeme(chatId: Long) {
     sendImage(chatId, url)
 }
 
-private fun newLog(name: String, amount: BigDecimal, comment: String, chatId: Long): Pair<Debtor, Log> {
-    logger.info { "call addNewLogToDebtor($name, $amount, $comment, $chatId)" }
+private fun newLogRecord(name: String, amount: BigDecimal, comment: String, chatId: Long): Pair<Debtor, Log> {
+    connection()
+    val pair= transaction {
+        var debtor = findDebtorByUserIdAndName(chatId, name)
+        if (debtor == null) {
+            debtor = insertDebtor(chatId, name)
+        }
+
+        return@transaction insertNewLogAndRecalculateDebt(debtor, amount, comment)
+    }
+
+    return pair
+}
+
+private fun insertNewLogAndRecalculateDebt(debtor: Debtor, amount: BigDecimal, comment: String) : Pair<Debtor, Log> {
+    logger.info { "call insertNewLogAndRecalculateDebt($debtor, $amount, $comment)" }
     connection()
 
     val pair = transaction {
-        var debtor = findDebtorByUserIdAndName(chatId, name)
-        var (credit, debit) = calculateCreditAndDebit(amount)
-
-        if (debtor == null) {
-            debtor = Debtor(chatId, name, amount)
-            debtor.id = insertDebtor(debtor)
-        } else {
-            val recalculatedAmount = calculateAmountToAvoidNegativeBalance(debtor.totalAmount, amount)
-            val (recalculatedCredit, recalculatedDebit) = calculateCreditAndDebit(recalculatedAmount)
-            credit = recalculatedCredit
-            debit = recalculatedDebit
-            debtor.totalAmount += recalculatedAmount
-            updateDebtor(debtor)
-        }
+        val recalculatedAmount = calculateAmountToAvoidNegativeBalance(debtor.totalAmount, amount)
+        val (credit, debit) = calculateCreditAndDebit(recalculatedAmount)
+        debtor.totalAmount += recalculatedAmount
+        updateDebtor(debtor)
 
         val log = Log(debtor.id!!, credit, debit, comment)
         insertLog(log)
 
         if (debtor.totalAmount < BigDecimal.ZERO) {
-            logger.info { "NegativeBalanceException for debtor:$debtor" }
+            logger.info { "NegativeBalanceException for debtor: $debtor" }
             TransactionManager.current().rollback()
             throw NegativeBalanceException("Total amount should be positive number")
         }
@@ -231,14 +235,6 @@ private fun newLog(name: String, amount: BigDecimal, comment: String, chatId: Lo
     }
 
     return pair
-}
-
-
-fun calculateAmountToAvoidNegativeBalance(totalAmount: BigDecimal, amount: BigDecimal): BigDecimal {
-    if (totalAmount > BigDecimal.ZERO && amount < BigDecimal.ZERO && (totalAmount + amount < BigDecimal.ZERO)) {
-        return totalAmount.multiply(BigDecimal(-1))
-    }
-    return amount
 }
 
 fun sendHowtoMessage(chatId: Long) {
@@ -265,7 +261,7 @@ fun mergeDebtors(chatId: Long, command: String) {
                     val sourceLogs = findLogsForDebtorByDebtorId(duplicates[1].id!!)
                     updated = sourceLogs
                             .map { sourceLog ->
-                                newLog(
+                                newLogRecord(
                                         duplicates[0].name,
                                         sourceLog.getAmountAsRawValue(),
                                         sourceLog.comment,
@@ -287,7 +283,7 @@ fun mergeDebtors(chatId: Long, command: String) {
                 val sourceLogs = findLogsForDebtorByDebtorId(sourceUser.id!!)
                 return@transaction sourceLogs
                         .map { sourceLog ->
-                            newLog(
+                            newLogRecord(
                                     destinationUser.name,
                                     sourceLog.getAmountAsRawValue(),
                                     sourceLog.comment,
@@ -327,7 +323,7 @@ fun adminMergeForDebtors(command: String) {
                 val sourceLogs = findLogsForDebtorByDebtorId(sourceUser.id!!)
                 val mergedTransactions = sourceLogs
                     .map { sourceLog ->
-                        newLog(
+                        newLogRecord(
                                 destinationUser.name,
                                 sourceLog.getAmountAsRawValue(),
                                 sourceLog.comment,
@@ -387,4 +383,11 @@ private fun findDebtorsWithLogs(chatId: Long): Map<Debtor, List<Log>> {
 private fun calculateCreditAndDebit(amount: BigDecimal): Pair<BigDecimal, BigDecimal> {
     return if (amount > BigDecimal.ZERO) Pair(amount, BigDecimal.ZERO)
     else Pair(BigDecimal.ZERO, amount.multiply(BigDecimal(-1)))
+}
+
+private fun calculateAmountToAvoidNegativeBalance(totalAmount: BigDecimal, amount: BigDecimal): BigDecimal {
+    if (totalAmount > BigDecimal.ZERO && amount < BigDecimal.ZERO && (totalAmount + amount < BigDecimal.ZERO)) {
+        return totalAmount.multiply(BigDecimal(-1))
+    }
+    return amount
 }
