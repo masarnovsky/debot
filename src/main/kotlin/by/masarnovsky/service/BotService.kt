@@ -198,45 +198,6 @@ fun sendMeme(chatId: Long) {
     sendImage(chatId, url)
 }
 
-private fun newLogRecord(name: String, amount: BigDecimal, comment: String, chatId: Long): Pair<Debtor, Log> {
-    connection()
-    val pair= transaction {
-        var debtor = findDebtorByUserIdAndName(chatId, name)
-        if (debtor == null) {
-            debtor = insertDebtor(chatId, name)
-        }
-
-        return@transaction insertNewLogAndRecalculateDebt(debtor, amount, comment)
-    }
-
-    return pair
-}
-
-private fun insertNewLogAndRecalculateDebt(debtor: Debtor, amount: BigDecimal, comment: String) : Pair<Debtor, Log> {
-    logger.info { "call insertNewLogAndRecalculateDebt($debtor, $amount, $comment)" }
-    connection()
-
-    val pair = transaction {
-        val recalculatedAmount = calculateAmountToAvoidNegativeBalance(debtor.totalAmount, amount)
-        val (credit, debit) = calculateCreditAndDebit(recalculatedAmount)
-        debtor.totalAmount += recalculatedAmount
-        updateDebtor(debtor)
-
-        val log = Log(debtor.id!!, credit, debit, comment)
-        insertLog(log)
-
-        if (debtor.totalAmount < BigDecimal.ZERO) {
-            logger.info { "NegativeBalanceException for debtor: $debtor" }
-            TransactionManager.current().rollback()
-            throw NegativeBalanceException("Total amount should be positive number")
-        }
-
-        return@transaction Pair(debtor, log)
-    }
-
-    return pair
-}
-
 fun sendHowtoMessage(chatId: Long) {
     sendMessage(chatId, HOWTO_INFO)
 }
@@ -250,57 +211,26 @@ fun mergeDebtors(chatId: Long, command: String) {
 
         connection()
 
-        val mergedLogsCount = transaction {
+        val (sourceUser, destinationUser) = transaction {
             val sourceUser = findDebtorByUserIdAndName(chatId, source)
             val destinationUser = findDebtorByUserIdAndName(chatId, destination)
 
-            if (source.equals(destination, ignoreCase = true)) {
-                val duplicates = findDuplicatesByUserIdAndName(chatId, source)
-                var updated = 0
-                if (duplicates.size == 2) {
-                    val sourceLogs = findLogsForDebtorByDebtorId(duplicates[1].id!!)
-                    updated = sourceLogs
-                            .map { sourceLog ->
-                                newLogRecord(
-                                        duplicates[0].name,
-                                        sourceLog.getAmountAsRawValue(),
-                                        sourceLog.comment,
-                                        chatId
-                                )
-                            }
-                            .count()
-                }
-                if (updated > 0) deleteDebtorForUserById(chatId, duplicates[1].id!!)
-                return@transaction updated
-            } else if (sourceUser == null || destinationUser == null) {
-                val existedNames = findDebtorsForUser(chatId).map { it.name }
-                sendMessage(chatId, formatMergedDebtorNotFound(source, destination, existedNames))
-                return@transaction 0
-            } else if (sourceUser.id == destinationUser.id) {
-                sendMessage(chatId, MERGE_DEBTOR_DUPLICATE_ERROR)
-                return@transaction 0
-            } else {
-                val sourceLogs = findLogsForDebtorByDebtorId(sourceUser.id!!)
-                return@transaction sourceLogs
-                        .map { sourceLog ->
-                            newLogRecord(
-                                    destinationUser.name,
-                                    sourceLog.getAmountAsRawValue(),
-                                    sourceLog.comment,
-                                    chatId
-                            )
-                        }
-                        .count()
-            }
+            return@transaction Pair(sourceUser, destinationUser)
         }
 
-        if (mergedLogsCount > 0) {
-            sendMessageWithKeyboard(
-                    chatId,
-                    formatMergedDebtorSuccess(mergedLogsCount, source, destination),
-                    createShowMergedUserKeyboard(destination)
-            )
+        val mergedLogsCount = if (source.equals(destination, ignoreCase = true)) {
+            mergeDuplicates(chatId, source)
+        } else if (sourceUser == null || destinationUser == null) {
+            suggestDebtorsForMerge(chatId, source, destination)
+        } else if (sourceUser.id == destinationUser.id) {
+            sendMessage(chatId, MERGE_DEBTOR_DUPLICATE_ERROR)
+            0
+        } else {
+            mergeDebtorsById(sourceUser, destinationUser)
         }
+
+        checkMergedLogsCountAndSendMessage(mergedLogsCount, chatId, source, destination)
+
     } else {
         sendMessage(chatId, WRONG_COMMAND_FORMAT)
     }
@@ -320,16 +250,7 @@ fun adminMergeForDebtors(command: String) {
             val sourceUser = findDebtorByUserIdAndId(chatId, source.toLong())
             val destinationUser = findDebtorByUserIdAndId(chatId, destination.toLong())
             if (sourceUser != null && destinationUser != null && sourceUser.id != destinationUser.id) {
-                val sourceLogs = findLogsForDebtorByDebtorId(sourceUser.id!!)
-                val mergedTransactions = sourceLogs
-                    .map { sourceLog ->
-                        newLogRecord(
-                                destinationUser.name,
-                                sourceLog.getAmountAsRawValue(),
-                                sourceLog.comment,
-                                chatId
-                        )
-                    }.count()
+                val mergedTransactions = mergeDebtorsById(sourceUser, destinationUser)
                 deleteDebtorForUserById(chatId, sourceUser.id!!)
                 sendMessage(chatId, formatSuccessfulAdminMergeMessage(chatId, mergedTransactions, destinationUser.name, sourceUser.name))
             } else {
@@ -390,4 +311,107 @@ private fun calculateAmountToAvoidNegativeBalance(totalAmount: BigDecimal, amoun
         return totalAmount.multiply(BigDecimal(-1))
     }
     return amount
+}
+
+private fun mergeDuplicates(chatId: Long, source: String): Int {
+    logger.info { "call mergeDuplicates($chatId, $source)" }
+
+    connection()
+    var updated = 0
+    transaction {
+        val duplicates = findDuplicatesByUserIdAndName(chatId, source)
+        if (duplicates.size == 2) {
+            val sourceLogs = findLogsForDebtorByDebtorId(duplicates[1].id!!)
+            updated = sourceLogs
+                    .map { sourceLog ->
+                        insertNewLogAndRecalculateDebt(
+                                duplicates[0],
+                                sourceLog.getAmountAsRawValue(),
+                                sourceLog.comment
+                        )
+                    }
+                    .count()
+        } else {
+            sendMessage(chatId, DUPLICATES_NOT_FOUND)
+        }
+        if (updated > 0) deleteDebtorForUserById(chatId, duplicates[1].id!!)
+    }
+    return updated
+}
+
+private fun suggestDebtorsForMerge(chatId: Long, source: String, destination: String): Int {
+    logger.info { "call suggestDebtorsForMerge($chatId, $source, $destination)" }
+
+    connection()
+    val existedNames = transaction {
+        return@transaction findDebtorsForUser(chatId).map { it.name }
+    }
+    sendMessage(chatId, formatMergedDebtorNotFound(source, destination, existedNames))
+    return 0
+}
+
+private fun mergeDebtorsById(sourceUser: Debtor, destinationUser: Debtor): Int {
+    logger.info { "call mergeDebtorsById($sourceUser, $destinationUser)" }
+    connection()
+    val sourceLogs = transaction {
+        return@transaction findLogsForDebtorByDebtorId(sourceUser.id!!)
+    }
+    return sourceLogs
+            .map { sourceLog ->
+                insertNewLogAndRecalculateDebt(
+                        destinationUser,
+                        sourceLog.getAmountAsRawValue(),
+                        sourceLog.comment
+                )
+            }
+            .count()
+}
+
+private fun checkMergedLogsCountAndSendMessage(mergedLogsCount: Int, chatId: Long, source: String, destination: String) {
+    if (mergedLogsCount > 0) {
+        sendMessageWithKeyboard(
+                chatId,
+                formatMergedDebtorSuccess(mergedLogsCount, source, destination),
+                createShowMergedUserKeyboard(destination)
+        )
+    }
+}
+
+private fun newLogRecord(name: String, amount: BigDecimal, comment: String, chatId: Long): Pair<Debtor, Log> {
+    connection()
+    val pair = transaction {
+        var debtor = findDebtorByUserIdAndName(chatId, name)
+        if (debtor == null) {
+            debtor = insertDebtor(chatId, name)
+        }
+
+        return@transaction insertNewLogAndRecalculateDebt(debtor, amount, comment)
+    }
+
+    return pair
+}
+
+private fun insertNewLogAndRecalculateDebt(debtor: Debtor, amount: BigDecimal, comment: String): Pair<Debtor, Log> {
+    logger.info { "call insertNewLogAndRecalculateDebt($debtor, $amount, $comment)" }
+    connection()
+
+    val pair = transaction {
+        val recalculatedAmount = calculateAmountToAvoidNegativeBalance(debtor.totalAmount, amount)
+        val (credit, debit) = calculateCreditAndDebit(recalculatedAmount)
+        debtor.totalAmount += recalculatedAmount
+        updateDebtor(debtor)
+
+        val log = Log(debtor.id!!, credit, debit, comment)
+        insertLog(log)
+
+        if (debtor.totalAmount < BigDecimal.ZERO) {
+            logger.info { "NegativeBalanceException for debtor: $debtor" }
+            TransactionManager.current().rollback()
+            throw NegativeBalanceException("Total amount should be positive number")
+        }
+
+        return@transaction Pair(debtor, log)
+    }
+
+    return pair
 }
