@@ -42,6 +42,12 @@ fun insertDebtor(debtor: Debtor): Long {
     }.value
 }
 
+fun insertDebtor(chatId: Long,name: String): Debtor {
+    val debtor = Debtor(chatId, name, BigDecimal.ZERO)
+    debtor.id = insertDebtor(debtor)
+    return debtor
+}
+
 fun updateDebtor(debtor: Debtor) {
     logger.info { "update debtor $debtor" }
     Debtors.update({ Debtors.id eq debtor.id }) {

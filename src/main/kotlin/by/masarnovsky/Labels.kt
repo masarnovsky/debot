@@ -23,6 +23,7 @@ const val MERGE_DEBTOR_NOT_FOUND = "Невозможно найти кого-т�
 const val MERGE_DEBTOR_DUPLICATE_ERROR = "Нельзя скопировать в того же должника"
 const val MERGE_DEBTOR_SUCCESS = "Скопировано %d транзакций из %s в %s"
 const val DEBTORS_NOT_FOUND = "Должников не найдено"
+const val DUPLICATES_NOT_FOUND = "Дубликатов не найдено"
 const val DELETE_ALL_DEBTORS_WARNING = "Вы точно хотите удалить <b>всех</b> должников?"
 const val DEBTOR_LOG_HISTORY_HEADER = "Текущий долг для %s равняется <b>%.2f</b> %s\nИстория долгов:\n"
 const val LOG_SUMMARIZE = "%s |   <b>%.2f</b> за %s\n"
