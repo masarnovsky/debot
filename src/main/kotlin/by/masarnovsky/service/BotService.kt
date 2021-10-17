@@ -7,11 +7,9 @@ import by.masarnovsky.db.*
 import by.masarnovsky.util.*
 import com.elbekD.bot.types.*
 import mu.KotlinLogging
-import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.transactions.TransactionManager
 import org.jetbrains.exposed.sql.transactions.transaction
 import java.math.BigDecimal
-import java.util.*
 
 private val logger = KotlinLogging.logger {}
 
@@ -90,7 +88,7 @@ fun repay(chatId: Long, command: String) {
 
 fun deleteAllDebtsNoOption(chatId: Long, messageId: Int) {
     logger.info { "call deleteAllDebtsNoOption for $chatId" }
-    editMessageTextAndInlineKeyboard(chatId, messageId, NOT_DELETE_HISTORY, null)
+    editMessageTextAndInlineKeyboard(chatId, messageId, NOT_DELETE_HISTORY)
 }
 
 fun returnListOfMemesForInlineQuery(chatId: Long, queryId: String) {
@@ -146,7 +144,7 @@ fun deleteAllDebts(chatId: Long, messageId: Int) {
         return@transaction deleteAllDebtorsForUser(chatId)
     }
 
-    editMessageTextAndInlineKeyboard(chatId, messageId, constructDeleteDebtorsMessageBasedOnDeletedCount(count), null)
+    editMessageTextAndInlineKeyboard(chatId, messageId, constructDeleteDebtorsMessageBasedOnDeletedCount(count))
 }
 
 fun showDebtorLogsFromCommand(chatId: Long, command: String?) {
@@ -260,10 +258,64 @@ fun adminMergeForDebtors(command: String) {
     }
 }
 
-fun sendMergedDebtorCallback(chatId: Long, messageId: Int, text: String) {
+fun revertLog(chatId: Long, command: String) {
+    logger.info { "call revertLog for $chatId" }
+
+    if (isStringMatchRevertPattern(command)) {
+        val (name) = REVERT_PATTERN.toRegex().find(command)!!.destructured
+
+        connection()
+
+        transaction {
+            val debtor = findDebtorByUserIdAndName(chatId, name)
+            if (debtor == null) {
+                sendMessage(chatId, DEBTOR_NOT_FOUND)
+            } else {
+                val log = findLastLogForDebtorByDebtorId(debtor.id!!)
+                if (log != null) {
+                    sendMessageWithKeyboard(
+                        chatId,
+                        formatDeleteLastDebtorLogMessage(debtor.name, log),
+                        createDeleteLastDebtorLogKeyboard(debtor.id!!, log.id!!)
+                    )
+                } else {
+                    sendMessage(chatId, DEBTOR_HAS_NO_DEBTS)
+                }
+            }
+        }
+    }
+}
+
+fun sendMergedDebtorCallback(chatId: Long, text: String) {
     val match = Regex(SHOW_MERGED_PATTERN).find(text)!!
     val (name) = match.destructured
     showDebtorLogs(chatId, name)
+}
+fun processRevertLastDebtorLog(chatId: Long, messageId: Int, text: String) {
+    val match = Regex(REVERT_LAST_DEBTOR_LOG_PATTERN).find(text)!!
+    val (debtorId, logId) = match.destructured
+
+    connection()
+
+    transaction {
+        val debtor = findDebtorByUserIdAndId(chatId, debtorId.toLong())
+        val log = findLogByIdAndDebtorId(logId.toLong(), debtorId.toLong())
+        if (debtor != null && log != null) {
+            debtor.totalAmount -= log.getAmountAsRawValue()
+
+            if (debtor.totalAmount < BigDecimal.ZERO) {
+                logger.info { "NegativeBalanceException for debtor: $debtor" }
+                throw NegativeBalanceException("Total amount should be positive number")
+            }
+
+            updateDebtor(debtor)
+            deleteLogById(logId.toLong())
+            editMessageTextAndInlineKeyboard(chatId, messageId, REVERT_WAS_COMPLETED)
+            showDebtorLogs(chatId, debtor.name)
+        } else {
+            editMessageTextAndInlineKeyboard(chatId, messageId, COMMON_ERROR)
+        }
+    }
 }
 
 fun setCurrency(chatId: Long, messageId: Int, text: String) {
@@ -280,7 +332,7 @@ fun setCurrency(chatId: Long, messageId: Int, text: String) {
         updateUser(user)
     }
 
-    editMessageTextAndInlineKeyboard(chatId, messageId, formatCurrentCurrency(newCurrency), null)
+    editMessageTextAndInlineKeyboard(chatId, messageId, formatCurrentCurrency(newCurrency))
 }
 
 fun unknownRequest(chatId: Long) {

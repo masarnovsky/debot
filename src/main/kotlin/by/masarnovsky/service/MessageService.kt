@@ -12,7 +12,7 @@ fun sendMessageWithKeyboard(chatId: Long, text: String, keyboard: ReplyKeyboard)
     bot.sendMessage(chatId = chatId, text = text, markup = keyboard, parseMode = "HTML")
 }
 
-fun editMessageTextAndInlineKeyboard(chatId: Long, messageId: Int, text: String, keyboard: InlineKeyboardMarkup?) {
+fun editMessageTextAndInlineKeyboard(chatId: Long, messageId: Int, text: String, keyboard: InlineKeyboardMarkup?= null) {
     bot.editMessageReplyMarkup(chatId, messageId)
     bot.editMessageText(
         chatId = chatId,

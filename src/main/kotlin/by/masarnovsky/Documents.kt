@@ -94,7 +94,7 @@ data class Log(
         else debit.multiply(BigDecimal(-1))
     }
 
-    private fun getAmount(): BigDecimal {
+    fun getAmount(): BigDecimal {
         return credit.max(debit)
     }
 

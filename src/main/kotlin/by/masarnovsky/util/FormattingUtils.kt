@@ -75,6 +75,10 @@ fun formatSuccessfulAdminMergeMessage(chatId: Long, logCount: Int, destinationUs
     return ADMIN_MERGE_SUCCESS.format(chatId, logCount, destinationUser, sourceUser)
 }
 
+fun formatDeleteLastDebtorLogMessage(name: String, log: Log): String {
+    return DELETE_LAST_DEBTOR_LOG.format(name, log.getAmount(), log.comment)
+}
+
 fun constructListOfAllDebtors(debtorsMap: Map<Debtor, List<Log>>, currency: Currency): String {
     val debtors = debtorsMap.keys
     val totalAmount = formatTotalAmountOfDebtsRecord(debtors, currency)

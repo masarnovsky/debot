@@ -44,3 +44,8 @@ fun createShowMergedUserKeyboard(name: String): InlineKeyboardMarkup {
     val list = InlineKeyboardButton(text = formatShowMergedDebtorButton(name), callback_data = formatShowMergedCallback(name))
     return InlineKeyboardMarkup(listOf(listOf(list)))
 }
+
+fun createDeleteLastDebtorLogKeyboard(debtorId: Long, logId: Long): InlineKeyboardMarkup {
+    val yes = InlineKeyboardButton(text = YES, callback_data = REVERT_LAST_DEBTOR_LOG_CALLBACK.format(debtorId, logId))
+    return InlineKeyboardMarkup(listOf(listOf(yes)))
+}

@@ -87,6 +87,7 @@ private fun setBehaviour() {
     howtoCommand()
     mergeCommand()
     memeCommand()
+    revertCommand()
 
     // admin commands
     migrateUsersCommand()
@@ -147,6 +148,13 @@ fun mergeCommand() {
     }
 }
 
+fun revertCommand() {
+    bot.onCommand(REVERT_COMMAND) { message, _ ->
+        val (chatId, text) = getChatIdAndTextFromMessage(message)
+        revertLog(chatId, text!!)
+    }
+}
+
 fun migrateUsersCommand() {
     bot.onCommand(MIGRATE_USERS_COMMAND) { message, _ ->
         val (chatId, _) = getChatIdAndTextFromMessage(message)
@@ -199,9 +207,11 @@ fun onCallbackQuery() {
         val (chatId, messageId, text) = getChatIdAndTextFromCallbackQuery(callback)
 
         if (isStringMatchShowMergePattern(text!!)) {
-            sendMergedDebtorCallback(chatId, messageId, text)
+            sendMergedDebtorCallback(chatId, text)
         } else if (isStringMatchSetCurrencyPattern(text)) {
             setCurrency(chatId, messageId, text)
+        } else if (isStringMatchRevertLastLogPattern(text)) {
+            processRevertLastDebtorLog(chatId, messageId, text)
         } else {
             when (text) {
                 DEBTORS_LIST_CALLBACK -> sendListOfDebtors(chatId)
@@ -244,6 +254,10 @@ fun isStringMatchMergePattern(str: String): Boolean {
     return Regex(MERGE_PATTERN) matches str
 }
 
+fun isStringMatchRevertPattern(str: String): Boolean {
+    return Regex(REVERT_PATTERN) matches str
+}
+
 fun isStringMatchAdminMergeByDebtorIdPattern(str: String): Boolean {
     return Regex(ADMIN_MERGE_BY_DEBTOR_ID_PATTERN) matches str
 }
@@ -254,6 +268,10 @@ fun isStringMatchShowMergePattern(str: String): Boolean {
 
 fun isStringMatchSetCurrencyPattern(str: String): Boolean {
     return Regex(SET_CURRENCY_PATTERN) matches str
+}
+
+fun isStringMatchRevertLastLogPattern(str: String): Boolean {
+    return Regex(REVERT_LAST_DEBTOR_LOG_PATTERN) matches str
 }
 
 private fun getChatIdAndTextFromMessage(message: Message): ChatIdAndText {
