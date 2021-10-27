@@ -55,3 +55,5 @@ INSERT INTO images(url) VALUES('http://risovach.ru/upload/2014/01/mem/bender_411
 INSERT INTO images(url) VALUES('https://www.meme-arsenal.com/memes/df6f5c7803b5a86ee64e80f0c21fb9d2.jpg');
 INSERT INTO images(url) VALUES('http://memesmix.net/media/created/ffe4bl.jpg');
 
+ALTER TABLE users ADD COLUMN is_bot BOOLEAN NOT NULL DEFAULT FALSE;
+

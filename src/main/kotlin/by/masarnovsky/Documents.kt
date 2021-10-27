@@ -128,6 +128,7 @@ data class User(
         var username: String?,
         var firstName: String?,
         var lastName: String?,
+        val isBot: Boolean = false,
         val created: LocalDateTime = TimeService.now(),
         var updated: LocalDateTime = TimeService.now(),
         var defaultLang: String = "RU",
@@ -141,6 +142,7 @@ data class User(
             username = resultRow[Users.username],
             firstName = resultRow[Users.firstName],
             lastName = resultRow[Users.lastName],
+            isBot = resultRow[Users.isBot],
             created = resultRow[Users.created],
             updated = resultRow[Users.updated],
             defaultCurrency = resultRow[Users.defaultCurrency],
@@ -152,6 +154,7 @@ data class User(
             firstName = message.chat.first_name,
             lastName = message.chat.last_name,
             defaultCurrency = Currency.BYN,
+            isBot = message.from?.is_bot ?: false
         )
     }
 }

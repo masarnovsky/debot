@@ -17,6 +17,7 @@ object Users : ChatIdTable() {
     val username = varchar("username", 200).nullable()
     val firstName = varchar("first_name", 200).nullable()
     val lastName = varchar("last_name", 200).nullable()
+    val isBot = bool("is_bot")
     val defaultLang = varchar("default_lang", 10)
     val defaultCurrency = enumerationByName("default_currency", 10, Currency::class)
     val created = datetime("created")
