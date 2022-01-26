@@ -29,10 +29,9 @@ fun insertUser(user: User): Long {
     }.value
 }
 
-fun updateUser(user: User) {
+fun updateUser(user: User, chatId: Long): User {
     logger.info { "update user $user" }
-    Users.update({ Users.id eq user.chatId }) {
-        it[id] = user.chatId
+    Users.update({ Users.id eq chatId }) {
         it[username] = user.username
         it[firstName] = user.firstName
         it[lastName] = user.lastName
@@ -40,6 +39,8 @@ fun updateUser(user: User) {
         it[defaultCurrency] = user.defaultCurrency
         it[updated] = TimeService.now()
     }
+
+    return user
 }
 
 fun findAllUsers(): List<User> {

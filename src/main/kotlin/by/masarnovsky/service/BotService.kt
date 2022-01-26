@@ -36,11 +36,11 @@ fun saveOrUpdateNewUser(message: Message): User {
     connection()
 
     val user = transaction {
-        var user = findUserByChatId(message.chat.id)
-        if (user != null) {
-            updateUser(user)
+        val dbUser = findUserByChatId(message.chat.id)
+        var user = User.fromMessage(message)
+        if (dbUser != null) {
+            user = updateUser(user, dbUser.chatId)
         } else {
-            user = User.fromMessage(message)
             insertUser(user)
         }
 
@@ -329,7 +329,7 @@ fun setCurrency(chatId: Long, messageId: Int, text: String) {
     transaction {
         val user = findUserByChatId(chatId)!!
         user.defaultCurrency = newCurrency
-        updateUser(user)
+        updateUser(user, user.chatId)
     }
 
     editMessageTextAndInlineKeyboard(chatId, messageId, formatCurrentCurrency(newCurrency))
