@@ -80,8 +80,8 @@ private fun setupPostgresCredentials() {
 private fun setBehaviour() {
     // commands
     startCommand()
-    showAllCommand()
-    showPersonDebtsCommand()
+    allCommand()
+    showCommand()
     deleteCommand()
     howtoCommand()
     mergeCommand()
@@ -97,74 +97,45 @@ private fun setBehaviour() {
     onMessage()
 }
 
-fun startCommand() {
-    bot.onCommand(START_COMMAND) { message, _ ->
-        logger.info { "/start command was called" }
-
-        val (chatId, _) = getChatIdAndTextFromMessage(message)
-
-        saveOrUpdateNewUser(message)
-        mainMenu(chatId)
-    }
+private fun startCommand() {
+    setUpCommand(StartCommand())
 }
 
-fun showAllCommand() {
-    bot.onCommand(ALL_COMMAND) { message, _ ->
-
-        val (chatId, _) = getChatIdAndTextFromMessage(message)
-        sendListOfDebtors(chatId)
-    }
+private fun allCommand() {
+    setUpCommand(AllCommand())
 }
 
-fun showPersonDebtsCommand() {
-    bot.onCommand(SHOW_COMMAND) { message, _ ->
-
-        val (chatId, text) = getChatIdAndTextFromMessage(message)
-        showDebtorLogsFromCommand(chatId, text)
-    }
+private fun showCommand() {
+    setUpCommand(ShowCommand())
 }
 
-fun deleteCommand() {
-    bot.onCommand(DELETE_COMMAND) { message, _ ->
-        val (chatId, text) = getChatIdAndTextFromMessage(message)
-        deleteDebtor(chatId, text)
-    }
+private fun deleteCommand() {
+    setUpCommand(DeleteCommand())
 }
 
-fun howtoCommand() {
-    bot.onCommand(HOWTO_COMMAND) { message, _ ->
-        val (chatId, _) = getChatIdAndTextFromMessage(message)
-        sendHowtoMessage(chatId)
-    }
+private fun howtoCommand() {
+    setUpCommand(HowToCommand())
 }
 
-fun mergeCommand() {
-    bot.onCommand(MERGE_COMMAND) { message, _ ->
-        val (chatId, text) = getChatIdAndTextFromMessage(message)
-        mergeDebtors(chatId, text!!)
-    }
+private fun mergeCommand() {
+    setUpCommand(MergeCommand())
 }
 
-fun revertCommand() {
-    bot.onCommand(REVERT_COMMAND) { message, _ ->
-        val (chatId, text) = getChatIdAndTextFromMessage(message)
-        revertLog(chatId, text!!)
-    }
+private fun revertCommand() {
+    setUpCommand(RevertCommand())
 }
 
-fun adminMergeForDebtorsCommand() {
-    bot.onCommand(ADMIN_MERGE_DEBTOR_COMMAND) { message, _ ->
-        val (chatId, text) = getChatIdAndTextFromMessage(message)
-        if (chatId == ownerId.toLong()) {
-            adminMergeForDebtors(text!!)
-        }
-    }
+private fun adminMergeForDebtorsCommand() {
+    setUpCommand(AdminDebtorMergeCommand())
 }
 
-fun memeCommand() {
-    bot.onCommand(MEME_COMMAND) { message, _ ->
-        val (chatId, _) = getChatIdAndTextFromMessage(message)
-        sendMeme(chatId)
+private fun memeCommand() {
+    setUpCommand(MemeCommand())
+}
+
+private fun setUpCommand(command: Command) {
+    bot.onCommand(command.getCommandName()) { message, _ ->
+        command.executeCommand(message)
     }
 }
 
@@ -265,8 +236,8 @@ private fun getChatIdAndQueryIdAndTextFromInlineQuery(inlineQuery: InlineQuery):
     return InlineQueryChatIdAndIdAndText(inlineQuery.from.id.toLong(), inlineQuery.id, inlineQuery.query)
 }
 
-private data class ChatIdAndText(val chatId: Long, val text: String?)
+data class ChatIdAndText(val chatId: Long, val text: String?)
 
-private data class InlineQueryChatIdAndIdAndText(val chatId: Long, val queryId:String?, val text: String?)
+private data class InlineQueryChatIdAndIdAndText(val chatId: Long, val queryId: String?, val text: String?)
 
 private data class ChatIdAndMessageIdAndText(val chatId: Long, val messageId: Int, val text: String?)

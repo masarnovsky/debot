@@ -147,9 +147,9 @@ fun deleteAllDebts(chatId: Long, messageId: Int) {
     editMessageTextAndInlineKeyboard(chatId, messageId, constructDeleteDebtorsMessageBasedOnDeletedCount(count))
 }
 
-fun showDebtorLogsFromCommand(chatId: Long, command: String?) {
+fun showDebtorLogsFromCommand(chatId: Long, text: String?) {
     logger.info { "call showPersonDebts for $chatId" }
-    val name = command?.replace(Regex("/show ?"), "")
+    val name = text?.replace(Regex("/show ?"), "")
     if (name?.isNotEmpty() == true) {
         showDebtorLogs(chatId, name)
     } else {
@@ -194,10 +194,6 @@ fun sendMeme(chatId: Long) {
     }
 
     sendImage(chatId, url)
-}
-
-fun sendHowtoMessage(chatId: Long) {
-    sendMessage(chatId, HOWTO_INFO)
 }
 
 fun mergeDebtors(chatId: Long, command: String) {
