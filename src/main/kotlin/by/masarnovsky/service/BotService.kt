@@ -255,7 +255,7 @@ fun adminMergeForDebtors(command: String) {
 }
 
 fun revertLog(chatId: Long, command: String) {
-    logger.info { "call revertLog for $chatId" }
+    logger.info { "call revertLog for $chatId with command: $command" }
 
     if (isStringMatchRevertPattern(command)) {
         val (name) = REVERT_PATTERN.toRegex().find(command)!!.destructured

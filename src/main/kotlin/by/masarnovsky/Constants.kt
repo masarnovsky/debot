@@ -24,6 +24,6 @@ const val ALL_COMMAND = "/all"
 const val HOWTO_COMMAND = "/howto"
 const val MERGE_COMMAND = "/merge"
 const val REVERT_COMMAND = "/revert"
+const val MEME_COMMAND = "/meme"
 
 const val ADMIN_DEBTOR_MERGE_COMMAND = "/amerge"
-const val MEME_COMMAND = "/meme"
