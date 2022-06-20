@@ -2,6 +2,7 @@ package by.masarnovsky
 
 import by.masarnovsky.command.*
 import by.masarnovsky.service.*
+import by.masarnovsky.util.*
 import com.elbekD.bot.Bot
 import com.elbekD.bot.types.CallbackQuery
 import com.elbekD.bot.types.InlineQuery
@@ -78,59 +79,21 @@ private fun setupPostgresCredentials() {
 }
 
 private fun setBehaviour() {
-    // commands
-    startCommand()
-    allCommand()
-    showCommand()
-    deleteCommand()
-    howtoCommand()
-    mergeCommand()
-    memeCommand()
-    revertCommand()
+    setUpCommand(StartCommand())
+    setUpCommand(AllCommand())
+    setUpCommand(ShowCommand())
+    setUpCommand(DeleteCommand())
+    setUpCommand(HowToCommand())
+    setUpCommand(MergeCommand())
+    setUpCommand(MemeCommand())
+    setUpCommand(RevertCommand())
 
-    // admin commands
-    adminMergeForDebtorsCommand()
+    setUpCommand(AdminDebtorMergeCommand())
 
     // other
     onInlineQuery()
     onCallbackQuery()
     onMessage()
-}
-
-private fun startCommand() {
-    setUpCommand(StartCommand())
-}
-
-private fun allCommand() {
-    setUpCommand(AllCommand())
-}
-
-private fun showCommand() {
-    setUpCommand(ShowCommand())
-}
-
-private fun deleteCommand() {
-    setUpCommand(DeleteCommand())
-}
-
-private fun howtoCommand() {
-    setUpCommand(HowToCommand())
-}
-
-private fun mergeCommand() {
-    setUpCommand(MergeCommand())
-}
-
-private fun revertCommand() {
-    setUpCommand(RevertCommand())
-}
-
-private fun adminMergeForDebtorsCommand() {
-    setUpCommand(AdminDebtorMergeCommand())
-}
-
-private fun memeCommand() {
-    setUpCommand(MemeCommand())
 }
 
 private fun setUpCommand(command: Command) {
@@ -190,38 +153,6 @@ fun onMessage() {
             sendMessage(chatId, COMMON_ERROR)
         }
     }
-}
-
-private fun isStringMatchDebtPattern(str: String): Boolean {
-    return Regex(NEW_DEBTOR_PATTERN) matches str
-}
-
-private fun isStringMatchRepayPattern(str: String): Boolean {
-    return Regex(REPAY_PATTERN) matches str
-}
-
-fun isStringMatchMergePattern(str: String): Boolean {
-    return Regex(MERGE_PATTERN) matches str
-}
-
-fun isStringMatchRevertPattern(str: String): Boolean {
-    return Regex(REVERT_PATTERN) matches str
-}
-
-fun isStringMatchAdminMergeByDebtorIdPattern(str: String): Boolean {
-    return Regex(ADMIN_MERGE_BY_DEBTOR_ID_PATTERN) matches str
-}
-
-fun isStringMatchShowMergePattern(str: String): Boolean {
-    return Regex(SHOW_MERGED_PATTERN) matches str
-}
-
-fun isStringMatchSetCurrencyPattern(str: String): Boolean {
-    return Regex(SET_CURRENCY_PATTERN) matches str
-}
-
-fun isStringMatchRevertLastLogPattern(str: String): Boolean {
-    return Regex(REVERT_LAST_DEBTOR_LOG_PATTERN) matches str
 }
 
 private fun getChatIdAndTextFromMessage(message: Message): ChatIdAndText {
