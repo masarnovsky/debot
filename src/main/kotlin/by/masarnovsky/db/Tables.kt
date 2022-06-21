@@ -6,7 +6,7 @@ import org.jetbrains.exposed.dao.id.IdTable
 import org.jetbrains.exposed.dao.id.LongIdTable
 import org.jetbrains.exposed.sql.Column
 import org.jetbrains.exposed.sql.ReferenceOption
-import org.jetbrains.exposed.sql.`java-time`.datetime
+import org.jetbrains.exposed.sql.javatime.datetime
 
 open class ChatIdTable(name: String = "", columnName: String = "id") : IdTable<Long>(name) {
   override val id: Column<EntityID<Long>> = long(columnName).entityId()
@@ -22,7 +22,6 @@ object Users : ChatIdTable() {
   val defaultCurrency = enumerationByName("default_currency", 10, Currency::class)
   val created = datetime("created")
   val updated = datetime("updated")
-  override val primaryKey = PrimaryKey(id, name = "users_pkey")
 }
 
 object Debtors : LongIdTable() {
@@ -31,7 +30,6 @@ object Debtors : LongIdTable() {
   val totalAmount = decimal("total_amount", 19, 2)
   val created = datetime("created")
   val updated = datetime("updated")
-  override val primaryKey = PrimaryKey(id, name = "debtors_pk")
 }
 
 object Logs : LongIdTable() {
@@ -42,10 +40,8 @@ object Logs : LongIdTable() {
   val comment = varchar("comment", 200)
   val currency = varchar("currency", 10)
   val type = varchar("type", 10)
-  override val primaryKey = PrimaryKey(id, name = "logs_pk")
 }
 
 object Images : LongIdTable() {
   val url = varchar("url", 200)
-  override val primaryKey = PrimaryKey(id, name = "images_pk")
 }
