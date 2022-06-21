@@ -1,10 +1,13 @@
 package by.masarnovsky
 
-const val POSTGRES_URL_PATTERN="postgres:(?://(?:(?<username>[^:@]*)(?::(?<password>[^@]*))?@)?(?<addresses>(?:[a-zA-Z0-9\\-.]+|\\[[0-9a-f:]+])(?::(?:\\d+))?(?:,(?:[a-zA-Z0-9\\-.]+|\\[[0-9a-f:]+])(?::(?:\\d+))?)*)/)?(?<database>[^?&/]+)(?:[?&](?<parameters>.*))?"
-const val NEW_DEBTOR_PATTERN = "(?<name>[\\p{L}\\s]*) (?<amount>[0-9.,]+) (?<comment>[\\p{L}\\s-!?)(.,]*)"
+const val POSTGRES_URL_PATTERN =
+    "postgres:(?://(?:(?<username>[^:@]*)(?::(?<password>[^@]*))?@)?(?<addresses>(?:[a-zA-Z0-9\\-.]+|\\[[0-9a-f:]+])(?::(?:\\d+))?(?:,(?:[a-zA-Z0-9\\-.]+|\\[[0-9a-f:]+])(?::(?:\\d+))?)*)/)?(?<database>[^?&/]+)(?:[?&](?<parameters>.*))?"
+const val NEW_DEBTOR_PATTERN =
+    "(?<name>[\\p{L}\\s]*) (?<amount>[0-9.,]+) (?<comment>[\\p{L}\\s-!?)(.,]*)"
 const val MERGE_PATTERN = "/merge (?<source>[\\p{L}\\s]*) (?<destination>[\\p{L}\\s]*)"
 const val REVERT_PATTERN = "/revert (?<name>[\\p{L}\\s]*)"
-const val ADMIN_MERGE_BY_DEBTOR_ID_PATTERN = "/amerge (?<chatId>[0-9]*) (?<source>[0-9]*) (?<destination>[0-9]*)"
+const val ADMIN_MERGE_BY_DEBTOR_ID_PATTERN =
+    "/amerge (?<chatId>[0-9]*) (?<source>[0-9]*) (?<destination>[0-9]*)"
 const val REPAY_PATTERN = "(?<name>[\\p{L}\\s]*) (?<amount>-[0-9.,]+)"
 const val SHOW_MERGED_PATTERN = "show_merged_(?<name>[\\p{L}\\s]*)"
 const val SET_CURRENCY_PATTERN = "set_currency_(?<currency>[A-Z]*)"

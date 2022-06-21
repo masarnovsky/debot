@@ -11,21 +11,21 @@ import org.jetbrains.exposed.sql.transactions.transaction
 private val logger = KotlinLogging.logger {}
 
 class MemeCommand : Command {
-    override fun getCommandName(): String = MEME_COMMAND
+  override fun getCommandName(): String = MEME_COMMAND
 
-    override fun execute(message: Message) {
-        val (chatId, _) = getChatIdAndTextFromMessage(message)
-        sendMeme(chatId)
+  override fun execute(message: Message) {
+    val (chatId, _) = getChatIdAndTextFromMessage(message)
+    sendMeme(chatId)
+  }
+
+  private fun sendMeme(chatId: Long) {
+    logger.info { "send meme for $chatId" }
+    connection()
+
+    val url = transaction {
+      return@transaction findAllImages().random().url
     }
 
-    private fun sendMeme(chatId: Long) {
-        logger.info { "send meme for $chatId" }
-        connection()
-
-        val url = transaction {
-            return@transaction findAllImages().random().url
-        }
-
-        sendImage(chatId, url)
-    }
+    sendImage(chatId, url)
+  }
 }

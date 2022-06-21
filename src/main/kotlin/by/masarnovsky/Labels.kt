@@ -1,8 +1,8 @@
 package by.masarnovsky
 
-
 const val REPAY_VALUE = "Возврат суммы"
-const val MAIN_MENU_DESCRIPTION = "Выберите валюту, в которой будут хранится долги (BYN по-умолчанию)"
+const val MAIN_MENU_DESCRIPTION =
+    "Выберите валюту, в которой будут хранится долги (BYN по-умолчанию)"
 const val UNKNOWN_REQUEST = "Не могу обработать запрос.\nОзнакомьтесь с командами: /howto"
 const val CURRENT_CURRENCY = "Текущая валюта: %s"
 const val NEGATIVE_BALANCE_ERROR = "Введена неверная сумма, баланс не может быть отрицательным"
@@ -28,15 +28,18 @@ const val MERGE_DEBTOR_SUCCESS = "Скопировано %d транзакций
 const val DEBTORS_NOT_FOUND = "Должников не найдено"
 const val DUPLICATES_NOT_FOUND = "Дубликатов не найдено"
 const val DELETE_ALL_DEBTORS_WARNING = "Вы точно хотите удалить <b>всех</b> должников?"
-const val DEBTOR_LOG_HISTORY_HEADER = "Текущий долг для %s равняется <b>%.2f</b> %s\nИстория долгов:\n"
+const val DEBTOR_LOG_HISTORY_HEADER =
+    "Текущий долг для %s равняется <b>%.2f</b> %s\nИстория долгов:\n"
 const val LOG_SUMMARIZE = "%s |   <b>%.2f</b> за %s\n"
 const val YES = "Да"
 const val NO = "Нет"
 const val SHOW_MERGED_DEBTOR_BUTTON = "Показать долги %s"
 const val CURRENT_DEBTS_TOTAL_AMOUNT = "Общая сумма долгов равна <b>%.2f</b> %s\n"
 const val DEBTOR_HISTORICAL_CREDIT = "За все время вы одолжили %s <b>%.2f</b> %s\n"
-const val ADMIN_MERGE_SUCCESS = "Пользователь %d.\nМигрировано %d транзакций должнику %s. %s был удален."
-const val HOWTO_INFO = """
+const val ADMIN_MERGE_SUCCESS =
+    "Пользователь %d.\nМигрировано %d транзакций должнику %s. %s был удален."
+const val HOWTO_INFO =
+    """
 Добавляй должника в таком формате: 
 <b>имя 66.6 комментарий</b> 
 Чтобы вычесть сумму долга: 
@@ -60,6 +63,3 @@ const val HOWTO_INFO = """
 Если хочешь получить мем про должника:
 <b>/meme</b>
 """
-
-
-
