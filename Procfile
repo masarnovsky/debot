@@ -1,1 +1,1 @@
-worker: java -jar build/libs/debot-1.0-SNAPSHOT.jar
+worker: java -jar build/libs/*.jar
