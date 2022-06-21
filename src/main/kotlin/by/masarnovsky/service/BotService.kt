@@ -1,23 +1,14 @@
 package by.masarnovsky.service
 
 import by.masarnovsky.*
-import by.masarnovsky.Currency
-import by.masarnovsky.User
 import by.masarnovsky.db.*
 import by.masarnovsky.util.*
-import com.elbekD.bot.types.*
 import mu.KotlinLogging
 import org.jetbrains.exposed.sql.transactions.TransactionManager
 import org.jetbrains.exposed.sql.transactions.transaction
 import java.math.BigDecimal
 
 private val logger = KotlinLogging.logger {}
-
-fun mainMenu(chatId: Long) {
-    logger.info { "main menu was called for $chatId" }
-    val keyboard = createMainMenuKeyboard()
-    sendMessageWithKeyboard(chatId, MAIN_MENU_DESCRIPTION, keyboard)
-}
 
 fun sendListOfDebtors(chatId: Long) {
     logger.info { "call sendListOfDebtors method for $chatId" }
@@ -29,25 +20,6 @@ fun sendListOfDebtors(chatId: Long) {
     }
     val text = constructListOfAllDebtors(map, currency)
     sendMessage(chatId, text)
-}
-
-fun saveOrUpdateNewUser(message: Message): User {
-    logger.info { "call saveOrUpdateNewUser" }
-    connection()
-
-    val user = transaction {
-        val dbUser = findUserByChatId(message.chat.id)
-        var user = User.fromMessage(message)
-        if (dbUser != null) {
-            user = updateUser(user, dbUser.chatId)
-        } else {
-            insertUser(user)
-        }
-
-        return@transaction user
-    }
-
-    return user
 }
 
 fun newDebt(chatId: Long, command: String) {
@@ -115,26 +87,6 @@ fun returnListOfDebtorsForInlineQuery(chatId: Long, queryId: String) {
     bot.answerInlineQuery(queryId, queries)
 }
 
-fun deleteDebtor(chatId: Long, command: String?) {
-    logger.info { "call deleteDebtor for $chatId" }
-    val name = command?.replace(Regex("/delete ?"), "")
-
-    if (name?.isNotEmpty() == true) {
-        logger.info { "delete debtor $name for $chatId" }
-
-        connection()
-        val count = transaction {
-            return@transaction deleteDebtorForUserByName(chatId, name)
-        }
-
-        sendMessage(chatId, constructDeleteDebtorMessageBasedOnDeletedCount(name, count))
-    } else {
-        logger.info { "delete all debtors for $chatId" }
-        val keyboard = createDeleteAllDebtorsKeyboard()
-        sendMessageWithKeyboard(chatId, DELETE_ALL_DEBTORS_WARNING, keyboard)
-    }
-}
-
 fun deleteAllDebts(chatId: Long, messageId: Int) {
     logger.info { "call deleteAllDebts for $chatId" }
 
@@ -145,17 +97,6 @@ fun deleteAllDebts(chatId: Long, messageId: Int) {
     }
 
     editMessageTextAndInlineKeyboard(chatId, messageId, constructDeleteDebtorsMessageBasedOnDeletedCount(count))
-}
-
-fun showDebtorLogsFromCommand(chatId: Long, command: String?) {
-    logger.info { "call showPersonDebts for $chatId" }
-    val name = command?.replace(Regex("/show ?"), "")
-    if (name?.isNotEmpty() == true) {
-        showDebtorLogs(chatId, name)
-    } else {
-        logger.info { "/show command without name. call sendListOfDebtors for $chatId" }
-        sendListOfDebtors(chatId)
-    }
 }
 
 fun showDebtorLogs(chatId: Long, name: String) {
@@ -176,114 +117,30 @@ fun showDebtorLogs(chatId: Long, name: String) {
         val header = formatDebtorHistoryHeader(debtor, currency)
         val footer = formatDebtorHistoricalAmount(debtor, logs, currency)
         val text = logs
-                .reversed()
-                .fold(header) { temp, log -> temp + log.summarize() }
-                .plus(footer)
+            .reversed()
+            .fold(header) { temp, log -> temp + log.summarize() }
+            .plus(footer)
         sendMessage(chatId, text)
     } else {
         sendMessage(chatId, DEBTOR_NOT_FOUND)
     }
 }
 
-fun sendMeme(chatId: Long) {
-    logger.info { "send meme for $chatId" }
+fun mergeDebtorsById(sourceUser: Debtor, destinationUser: Debtor): Int {
+    logger.info { "call mergeDebtorsById($sourceUser, $destinationUser)" }
     connection()
-
-    val url = transaction {
-        return@transaction findAllImages().random().url
+    val sourceLogs = transaction {
+        return@transaction findLogsForDebtorByDebtorId(sourceUser.id!!)
     }
-
-    sendImage(chatId, url)
-}
-
-fun sendHowtoMessage(chatId: Long) {
-    sendMessage(chatId, HOWTO_INFO)
-}
-
-fun mergeDebtors(chatId: Long, command: String) {
-    logger.info { "call mergeDebtors method for $chatId" }
-
-    if (isStringMatchMergePattern(command)) {
-        val names = MERGE_PATTERN.toRegex().find(command)!!
-        val (source, destination) = names.destructured
-
-        connection()
-
-        val (sourceUser, destinationUser) = transaction {
-            val sourceUser = findDebtorByUserIdAndName(chatId, source)
-            val destinationUser = findDebtorByUserIdAndName(chatId, destination)
-
-            return@transaction Pair(sourceUser, destinationUser)
+    return sourceLogs
+        .map { sourceLog ->
+            insertNewLogAndRecalculateDebt(
+                destinationUser,
+                sourceLog.getAmountAsRawValue(),
+                sourceLog.comment
+            )
         }
-
-        val mergedLogsCount = if (source.equals(destination, ignoreCase = true)) {
-            mergeDuplicates(chatId, source)
-        } else if (sourceUser == null || destinationUser == null) {
-            suggestDebtorsForMerge(chatId, source, destination)
-        } else if (sourceUser.id == destinationUser.id) {
-            sendMessage(chatId, MERGE_DEBTOR_DUPLICATE_ERROR)
-            0
-        } else {
-            mergeDebtorsById(sourceUser, destinationUser)
-        }
-
-        checkMergedLogsCountAndSendMessage(mergedLogsCount, chatId, source, destination)
-
-    } else {
-        sendMessage(chatId, WRONG_COMMAND_FORMAT)
-    }
-}
-
-fun adminMergeForDebtors(command: String) {
-    logger.info { "call adminMergeForDebtors method" }
-
-    if (isStringMatchAdminMergeByDebtorIdPattern(command)) {
-        val ids = ADMIN_MERGE_BY_DEBTOR_ID_PATTERN.toRegex().find(command)!!
-        val (userId, source, destination) = ids.destructured
-        val chatId = userId.toLong()
-
-        connection()
-
-        transaction {
-            val sourceUser = findDebtorByUserIdAndId(chatId, source.toLong())
-            val destinationUser = findDebtorByUserIdAndId(chatId, destination.toLong())
-            if (sourceUser != null && destinationUser != null && sourceUser.id != destinationUser.id) {
-                val mergedTransactions = mergeDebtorsById(sourceUser, destinationUser)
-                deleteDebtorForUserById(chatId, sourceUser.id!!)
-                sendMessage(chatId, formatSuccessfulAdminMergeMessage(chatId, mergedTransactions, destinationUser.name, sourceUser.name))
-            } else {
-                sendMessage(chatId, COMMON_ERROR)
-            }
-        }
-    }
-}
-
-fun revertLog(chatId: Long, command: String) {
-    logger.info { "call revertLog for $chatId" }
-
-    if (isStringMatchRevertPattern(command)) {
-        val (name) = REVERT_PATTERN.toRegex().find(command)!!.destructured
-
-        connection()
-
-        transaction {
-            val debtor = findDebtorByUserIdAndName(chatId, name)
-            if (debtor == null) {
-                sendMessage(chatId, DEBTOR_NOT_FOUND)
-            } else {
-                val log = findLastLogForDebtorByDebtorId(debtor.id!!)
-                if (log != null) {
-                    sendMessageWithKeyboard(
-                        chatId,
-                        formatDeleteLastDebtorLogMessage(debtor.name, log),
-                        createDeleteLastDebtorLogKeyboard(debtor.id!!, log.id!!)
-                    )
-                } else {
-                    sendMessage(chatId, DEBTOR_HAS_NO_DEBTS)
-                }
-            }
-        }
-    }
+        .count()
 }
 
 fun sendMergedDebtorCallback(chatId: Long, text: String) {
@@ -291,6 +148,7 @@ fun sendMergedDebtorCallback(chatId: Long, text: String) {
     val (name) = match.destructured
     showDebtorLogs(chatId, name)
 }
+
 fun processRevertLastDebtorLog(chatId: Long, messageId: Int, text: String) {
     val match = Regex(REVERT_LAST_DEBTOR_LOG_PATTERN).find(text)!!
     val (debtorId, logId) = match.destructured
@@ -365,69 +223,6 @@ private fun calculateAmountToAvoidNegativeBalance(totalAmount: BigDecimal, amoun
     return amount
 }
 
-private fun mergeDuplicates(chatId: Long, source: String): Int {
-    logger.info { "call mergeDuplicates($chatId, $source)" }
-
-    connection()
-    var updated = 0
-    transaction {
-        val duplicates = findDuplicatesByUserIdAndName(chatId, source)
-        if (duplicates.size == 2) {
-            val sourceLogs = findLogsForDebtorByDebtorId(duplicates[1].id!!)
-            updated = sourceLogs
-                    .map { sourceLog ->
-                        insertNewLogAndRecalculateDebt(
-                                duplicates[0],
-                                sourceLog.getAmountAsRawValue(),
-                                sourceLog.comment
-                        )
-                    }
-                    .count()
-        } else {
-            sendMessage(chatId, DUPLICATES_NOT_FOUND)
-        }
-        if (updated > 0) deleteDebtorForUserById(chatId, duplicates[1].id!!)
-    }
-    return updated
-}
-
-private fun suggestDebtorsForMerge(chatId: Long, source: String, destination: String): Int {
-    logger.info { "call suggestDebtorsForMerge($chatId, $source, $destination)" }
-
-    connection()
-    val existedNames = transaction {
-        return@transaction findDebtorsForUser(chatId).map { it.name }
-    }
-    sendMessage(chatId, formatMergedDebtorNotFound(source, destination, existedNames))
-    return 0
-}
-
-private fun mergeDebtorsById(sourceUser: Debtor, destinationUser: Debtor): Int {
-    logger.info { "call mergeDebtorsById($sourceUser, $destinationUser)" }
-    connection()
-    val sourceLogs = transaction {
-        return@transaction findLogsForDebtorByDebtorId(sourceUser.id!!)
-    }
-    return sourceLogs
-            .map { sourceLog ->
-                insertNewLogAndRecalculateDebt(
-                        destinationUser,
-                        sourceLog.getAmountAsRawValue(),
-                        sourceLog.comment
-                )
-            }
-            .count()
-}
-
-private fun checkMergedLogsCountAndSendMessage(mergedLogsCount: Int, chatId: Long, source: String, destination: String) {
-    if (mergedLogsCount > 0) {
-        sendMessageWithKeyboard(
-                chatId,
-                formatMergedDebtorSuccess(mergedLogsCount, source, destination),
-                createShowMergedUserKeyboard(destination)
-        )
-    }
-}
 
 private fun newLogRecord(name: String, amount: BigDecimal, comment: String, chatId: Long): Pair<Debtor, Log> {
     connection()
@@ -443,7 +238,7 @@ private fun newLogRecord(name: String, amount: BigDecimal, comment: String, chat
     return pair
 }
 
-private fun insertNewLogAndRecalculateDebt(debtor: Debtor, amount: BigDecimal, comment: String): Pair<Debtor, Log> {
+fun insertNewLogAndRecalculateDebt(debtor: Debtor, amount: BigDecimal, comment: String): Pair<Debtor, Log> {
     logger.info { "call insertNewLogAndRecalculateDebt($debtor, $amount, $comment)" }
     connection()
 

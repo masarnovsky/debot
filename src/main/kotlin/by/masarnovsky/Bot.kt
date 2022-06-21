@@ -1,8 +1,8 @@
 package by.masarnovsky
 
-import by.masarnovsky.migration.replicateMongoDebtorsAndDebts
-import by.masarnovsky.migration.replicateMongoUsers
+import by.masarnovsky.command.*
 import by.masarnovsky.service.*
+import by.masarnovsky.util.*
 import com.elbekD.bot.Bot
 import com.elbekD.bot.types.CallbackQuery
 import com.elbekD.bot.types.InlineQuery
@@ -79,20 +79,16 @@ private fun setupPostgresCredentials() {
 }
 
 private fun setBehaviour() {
-    // commands
-    startCommand()
-    showAllCommand()
-    showPersonDebtsCommand()
-    deleteCommand()
-    howtoCommand()
-    mergeCommand()
-    memeCommand()
-    revertCommand()
+    setUpCommand(StartCommand())
+    setUpCommand(AllCommand())
+    setUpCommand(ShowCommand())
+    setUpCommand(DeleteCommand())
+    setUpCommand(HowToCommand())
+    setUpCommand(MergeCommand())
+    setUpCommand(MemeCommand())
+    setUpCommand(RevertCommand())
 
-    // admin commands
-    migrateUsersCommand()
-    migrateDebtorsAndDebtsCommand()
-    adminMergeForDebtorsCommand()
+    setUpCommand(AdminDebtorMergeCommand())
 
     // other
     onInlineQuery()
@@ -100,92 +96,9 @@ private fun setBehaviour() {
     onMessage()
 }
 
-fun startCommand() {
-    bot.onCommand(START_COMMAND) { message, _ ->
-        logger.info { "/start command was called" }
-
-        val (chatId, _) = getChatIdAndTextFromMessage(message)
-
-        saveOrUpdateNewUser(message)
-        mainMenu(chatId)
-    }
-}
-
-fun showAllCommand() {
-    bot.onCommand(ALL_COMMAND) { message, _ ->
-
-        val (chatId, _) = getChatIdAndTextFromMessage(message)
-        sendListOfDebtors(chatId)
-    }
-}
-
-fun showPersonDebtsCommand() {
-    bot.onCommand(SHOW_COMMAND) { message, _ ->
-
-        val (chatId, text) = getChatIdAndTextFromMessage(message)
-        showDebtorLogsFromCommand(chatId, text)
-    }
-}
-
-fun deleteCommand() {
-    bot.onCommand(DELETE_COMMAND) { message, _ ->
-        val (chatId, text) = getChatIdAndTextFromMessage(message)
-        deleteDebtor(chatId, text)
-    }
-}
-
-fun howtoCommand() {
-    bot.onCommand(HOWTO_COMMAND) { message, _ ->
-        val (chatId, _) = getChatIdAndTextFromMessage(message)
-        sendHowtoMessage(chatId)
-    }
-}
-
-fun mergeCommand() {
-    bot.onCommand(MERGE_COMMAND) { message, _ ->
-        val (chatId, text) = getChatIdAndTextFromMessage(message)
-        mergeDebtors(chatId, text!!)
-    }
-}
-
-fun revertCommand() {
-    bot.onCommand(REVERT_COMMAND) { message, _ ->
-        val (chatId, text) = getChatIdAndTextFromMessage(message)
-        revertLog(chatId, text!!)
-    }
-}
-
-fun migrateUsersCommand() {
-    bot.onCommand(MIGRATE_USERS_COMMAND) { message, _ ->
-        val (chatId, _) = getChatIdAndTextFromMessage(message)
-        if (chatId == ownerId.toLong()) {
-            replicateMongoUsers()
-        }
-    }
-}
-
-fun migrateDebtorsAndDebtsCommand() {
-    bot.onCommand(MIGRATE_DEBTORS_COMMAND) { message, _ ->
-        val (chatId, _) = getChatIdAndTextFromMessage(message)
-        if (chatId == ownerId.toLong()) {
-            replicateMongoDebtorsAndDebts()
-        }
-    }
-}
-
-fun adminMergeForDebtorsCommand() {
-    bot.onCommand(ADMIN_MERGE_DEBTOR_COMMAND) { message, _ ->
-        val (chatId, text) = getChatIdAndTextFromMessage(message)
-        if (chatId == ownerId.toLong()) {
-            adminMergeForDebtors(text!!)
-        }
-    }
-}
-
-fun memeCommand() {
-    bot.onCommand(MEME_COMMAND) { message, _ ->
-        val (chatId, _) = getChatIdAndTextFromMessage(message)
-        sendMeme(chatId)
+private fun setUpCommand(command: Command) {
+    bot.onCommand(command.getCommandName()) { message, _ ->
+        command.executeCommand(message)
     }
 }
 
@@ -242,38 +155,6 @@ fun onMessage() {
     }
 }
 
-private fun isStringMatchDebtPattern(str: String): Boolean {
-    return Regex(NEW_DEBTOR_PATTERN) matches str
-}
-
-private fun isStringMatchRepayPattern(str: String): Boolean {
-    return Regex(REPAY_PATTERN) matches str
-}
-
-fun isStringMatchMergePattern(str: String): Boolean {
-    return Regex(MERGE_PATTERN) matches str
-}
-
-fun isStringMatchRevertPattern(str: String): Boolean {
-    return Regex(REVERT_PATTERN) matches str
-}
-
-fun isStringMatchAdminMergeByDebtorIdPattern(str: String): Boolean {
-    return Regex(ADMIN_MERGE_BY_DEBTOR_ID_PATTERN) matches str
-}
-
-fun isStringMatchShowMergePattern(str: String): Boolean {
-    return Regex(SHOW_MERGED_PATTERN) matches str
-}
-
-fun isStringMatchSetCurrencyPattern(str: String): Boolean {
-    return Regex(SET_CURRENCY_PATTERN) matches str
-}
-
-fun isStringMatchRevertLastLogPattern(str: String): Boolean {
-    return Regex(REVERT_LAST_DEBTOR_LOG_PATTERN) matches str
-}
-
 private fun getChatIdAndTextFromMessage(message: Message): ChatIdAndText {
     return ChatIdAndText(message.chat.id, message.text)
 }
@@ -286,8 +167,8 @@ private fun getChatIdAndQueryIdAndTextFromInlineQuery(inlineQuery: InlineQuery):
     return InlineQueryChatIdAndIdAndText(inlineQuery.from.id.toLong(), inlineQuery.id, inlineQuery.query)
 }
 
-private data class ChatIdAndText(val chatId: Long, val text: String?)
+data class ChatIdAndText(val chatId: Long, val text: String?)
 
-private data class InlineQueryChatIdAndIdAndText(val chatId: Long, val queryId:String?, val text: String?)
+private data class InlineQueryChatIdAndIdAndText(val chatId: Long, val queryId: String?, val text: String?)
 
 private data class ChatIdAndMessageIdAndText(val chatId: Long, val messageId: Int, val text: String?)
