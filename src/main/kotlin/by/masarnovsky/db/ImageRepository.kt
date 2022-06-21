@@ -7,6 +7,6 @@ import org.jetbrains.exposed.sql.selectAll
 private val logger = KotlinLogging.logger {}
 
 fun findAllImages(): List<Image> {
-    logger.info { "find images" }
-    return Images.selectAll().map { Image.fromRow(it) }
+  logger.info { "find images" }
+  return Images.selectAll().map { Image.fromRow(it) }
 }

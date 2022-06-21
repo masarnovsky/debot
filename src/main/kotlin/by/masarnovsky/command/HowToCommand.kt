@@ -6,10 +6,10 @@ import by.masarnovsky.service.sendMessage
 import com.elbekD.bot.types.Message
 
 class HowToCommand : Command {
-    override fun getCommandName(): String = HOWTO_COMMAND
+  override fun getCommandName(): String = HOWTO_COMMAND
 
-    override fun execute(message: Message) {
-        val (chatId, _) = getChatIdAndTextFromMessage(message)
-        sendMessage(chatId, HOWTO_INFO)
-    }
+  override fun execute(message: Message) {
+    val (chatId, _) = getChatIdAndTextFromMessage(message)
+    sendMessage(chatId, HOWTO_INFO)
+  }
 }

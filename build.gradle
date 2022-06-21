@@ -1,6 +1,7 @@
 plugins {
     id 'java'
     id 'org.jetbrains.kotlin.jvm' version '1.4.10'
+    id 'com.diffplug.spotless' version '6.4.1'
 }
 
 group 'by.masarnovsky'
@@ -36,6 +37,16 @@ jar {
 tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).all {
     kotlinOptions {
         jvmTarget = "1.8"
+    }
+}
+
+spotless {
+    kotlin {
+        ktfmt()
+    }
+    kotlinGradle {
+        target '*.gradle.kts'
+        ktfmt()
     }
 }
 
