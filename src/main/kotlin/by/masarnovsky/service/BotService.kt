@@ -148,6 +148,19 @@ fun sendMergedDebtorCallback(chatId: Long, text: String) {
   showDebtorLogs(chatId, name)
 }
 
+fun processDeleteDebtorHistory(chatId: Long, messageId: Int, text: String) {
+  val match = Regex(DELETE_DEBTOR_HISTORY_PATTERN).find(text)!!
+  val (name) = match.destructured
+
+  connection()
+  val count = transaction {
+    return@transaction deleteDebtorForUserByName(chatId, name)
+  }
+
+  editMessageTextAndInlineKeyboard(
+      chatId, messageId, constructDeleteDebtorMessageBasedOnDeletedCount(name, count))
+}
+
 fun processRevertLastDebtorLog(chatId: Long, messageId: Int, text: String) {
   val match = Regex(REVERT_LAST_DEBTOR_LOG_PATTERN).find(text)!!
   val (debtorId, logId) = match.destructured

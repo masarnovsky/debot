@@ -121,6 +121,8 @@ fun onCallbackQuery() {
       setCurrency(chatId, messageId, text)
     } else if (isStringMatchRevertLastLogPattern(text)) {
       processRevertLastDebtorLog(chatId, messageId, text)
+    } else if (isStringMatchDeleteDebtorHistoryPattern(text)) {
+      processDeleteDebtorHistory(chatId, messageId, text)
     } else {
       when (text) {
         DEBTORS_LIST_CALLBACK -> sendListOfDebtors(chatId)

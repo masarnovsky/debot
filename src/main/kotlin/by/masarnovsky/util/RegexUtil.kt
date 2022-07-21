@@ -33,3 +33,6 @@ fun isStringMatchSetCurrencyPattern(str: String): Boolean {
 fun isStringMatchRevertLastLogPattern(str: String): Boolean {
   return Regex(REVERT_LAST_DEBTOR_LOG_PATTERN) matches str
 }
+
+fun isStringMatchDeleteDebtorHistoryPattern(str: String) =
+    Regex(DELETE_DEBTOR_HISTORY_PATTERN) matches str

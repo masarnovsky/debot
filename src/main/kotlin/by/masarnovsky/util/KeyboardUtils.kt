@@ -11,6 +11,13 @@ fun createDeleteAllDebtorsKeyboard(): InlineKeyboardMarkup {
   return InlineKeyboardMarkup(listOf(listOf(yes, no)))
 }
 
+fun createDeleteDebtorKeyboard(name: String): InlineKeyboardMarkup {
+  val yes =
+      InlineKeyboardButton(text = YES, callback_data = formatDeleteDebtorHistoryCallback(name))
+  val no = InlineKeyboardButton(text = NO, callback_data = NOT_DELETE_DEBTOR_HISTORY_CALLBACK)
+  return InlineKeyboardMarkup(listOf(listOf(yes, no)))
+}
+
 fun createInlineQueryResultArticle(
     debtor: Debtor,
     logs: List<Log>,

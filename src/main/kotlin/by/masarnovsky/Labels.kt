@@ -15,8 +15,9 @@ const val DEBTOR_CREDIT_AFTER_REPAY = " должен(на) тебе <b>%.2f</b> 
 const val DEBTOR_SUGGESTION_FOR_INLINE_QUERY = "Долг %s равен %.2f %s"
 const val DEBTOR_RECORD_FOR_INLINE_QUERY = "Долг %s равен <b>%.2f</b> %s за: <i>%s</i>"
 const val DEBTOR_RECORD_SHORT = "%s <b>%.2f</b> %s за: <i>%s</i>"
-const val SUCCESSFUL_DEBTOR_REMOVAL = "Информация о должнике %s была удалена"
-const val SUCCESSFUL_DEBTORS_REMOVAL = "Информация о %d должниках была удалена"
+const val SUCCESSFUL_DEBTOR_REMOVAL =
+    "Информация о должнике <b>%s</b> была удалена (<b>%d</b> записей)"
+const val SUCCESSFUL_DEBTORS_REMOVAL = "Информация о <b>%d</b> должниках была удалена"
 const val DEBTOR_NOT_FOUND = "По такому имени ничего не найдено"
 const val DEBTOR_HAS_NO_DEBTS = "У должника нет долгов"
 const val REVERT_WAS_COMPLETED = "Запись была удалена"
@@ -28,6 +29,7 @@ const val MERGE_DEBTOR_SUCCESS = "Скопировано %d транзакций
 const val DEBTORS_NOT_FOUND = "Должников не найдено"
 const val DUPLICATES_NOT_FOUND = "Дубликатов не найдено"
 const val DELETE_ALL_DEBTORS_WARNING = "Вы точно хотите удалить <b>всех</b> должников?"
+const val DELETE_DEBTOR_HISTORY_WARNING = "Вы точно хотите удалить историю должника <b>%s</b>?"
 const val DEBTOR_LOG_HISTORY_HEADER =
     "Текущий долг для %s равняется <b>%.2f</b> %s\nИстория долгов:\n"
 const val LOG_SUMMARIZE = "%s |   <b>%.2f</b> за %s\n"

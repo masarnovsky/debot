@@ -62,9 +62,12 @@ fun formatDebtorSuggestionForInlineQuery(debtor: Debtor, currency: Currency): St
   return DEBTOR_SUGGESTION_FOR_INLINE_QUERY.format(debtor.name, debtor.totalAmount, currency.name)
 }
 
-fun formatCurrencyCallback(name: String): String {
-  return SET_CURRENCY_CALLBACK.format(name)
-}
+fun formatCurrencyCallback(name: String) = SET_CURRENCY_CALLBACK.format(name)
+
+fun formatDeleteDebtorHistoryCallback(name: String) = DELETE_DEBTOR_HISTORY_CALLBACK.format(name)
+
+fun formatDeleteDebtorHistoryWarningMessage(name: String) =
+    DELETE_DEBTOR_HISTORY_WARNING.format(name)
 
 fun formatCurrentCurrency(currency: Currency): String {
   return CURRENT_CURRENCY.format(currency.name)
@@ -110,7 +113,7 @@ fun constructListOfLogs(totalAmount: BigDecimal, logs: List<Log>): String {
 }
 
 fun constructDeleteDebtorMessageBasedOnDeletedCount(name: String, count: Int): String {
-  return if (count > 0) SUCCESSFUL_DEBTOR_REMOVAL.format(name) else DEBTOR_NOT_FOUND
+  return if (count > 0) SUCCESSFUL_DEBTOR_REMOVAL.format(name, count) else DEBTOR_NOT_FOUND
 }
 
 fun constructDeleteDebtorsMessageBasedOnDeletedCount(count: Int): String {
