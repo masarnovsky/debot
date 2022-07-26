@@ -21,6 +21,7 @@ const val SUCCESSFUL_DEBTORS_REMOVAL = "Информация о <b>%d</b> дол
 const val DEBTOR_NOT_FOUND = "По такому имени ничего не найдено"
 const val DEBTOR_HAS_NO_DEBTS = "У должника нет долгов"
 const val REVERT_WAS_COMPLETED = "Запись была удалена"
+const val WRONG_FORMAT_FOR_REVERT_COMMAND = "Формат комманды: <b>/revert имя</b>"
 const val DELETE_LAST_DEBTOR_LOG = "Удалить последнюю запись %s: <b>%.2f</b> за <i>%s</i>?"
 const val WRONG_COMMAND_FORMAT = "Неверный формат команды"
 const val MERGE_DEBTOR_NOT_FOUND = "Невозможно найти кого-то из [%s, %s]. Доступные имена:\n%s"

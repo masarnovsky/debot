@@ -1,9 +1,6 @@
 package by.masarnovsky.command
 
-import by.masarnovsky.DEBTOR_HAS_NO_DEBTS
-import by.masarnovsky.DEBTOR_NOT_FOUND
-import by.masarnovsky.REVERT_COMMAND
-import by.masarnovsky.REVERT_PATTERN
+import by.masarnovsky.*
 import by.masarnovsky.db.connection
 import by.masarnovsky.db.findDebtorByUserIdAndName
 import by.masarnovsky.db.findLastLogForDebtorByDebtorId
@@ -50,6 +47,8 @@ class RevertCommand : Command {
           }
         }
       }
+    } else {
+      sendMessage(chatId, WRONG_FORMAT_FOR_REVERT_COMMAND)
     }
   }
 }
