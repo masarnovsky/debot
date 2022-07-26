@@ -22,8 +22,12 @@ fun isStringMatchAdminMergeByDebtorIdPattern(str: String): Boolean {
   return Regex(ADMIN_MERGE_BY_DEBTOR_ID_PATTERN) matches str
 }
 
-fun isStringMatchShowMergePattern(str: String): Boolean {
+fun isStringMatchShowMergedPattern(str: String): Boolean {
   return Regex(SHOW_MERGED_PATTERN) matches str
+}
+
+fun isStringMatchDeleteMergedPattern(str: String): Boolean {
+  return Regex(DELETE_MERGED_PATTERN) matches str
 }
 
 fun isStringMatchSetCurrencyPattern(str: String): Boolean {

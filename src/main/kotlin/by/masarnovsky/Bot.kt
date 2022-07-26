@@ -115,8 +115,10 @@ fun onCallbackQuery() {
   bot.onCallbackQuery { callback ->
     val (chatId, messageId, text) = getChatIdAndTextFromCallbackQuery(callback)
 
-    if (isStringMatchShowMergePattern(text!!)) {
+    if (isStringMatchShowMergedPattern(text!!)) {
       sendMergedDebtorCallback(chatId, text)
+    } else if (isStringMatchDeleteMergedPattern(text)) {
+      deleteMergedDebtorCallback(chatId, messageId, text)
     } else if (isStringMatchSetCurrencyPattern(text)) {
       setCurrency(chatId, messageId, text)
     } else if (isStringMatchRevertLastLogPattern(text)) {

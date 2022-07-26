@@ -55,7 +55,7 @@ class MergeCommand : Command {
 
       checkMergedLogsCountAndSendMessage(mergedLogsCount, chatId, source, destination)
     } else {
-      sendMessage(chatId, WRONG_COMMAND_FORMAT)
+      sendMessage(chatId, WRONG_FORMAT_FOR_MERGE_COMMAND)
     }
   }
 
@@ -104,7 +104,7 @@ class MergeCommand : Command {
       sendMessageWithKeyboard(
           chatId,
           formatMergedDebtorSuccess(mergedLogsCount, source, destination),
-          createShowMergedUserKeyboard(destination))
+          createShowMergedUserKeyboard(destination, source))
     }
   }
 }

@@ -58,11 +58,19 @@ fun createMainMenuKeyboard(): InlineKeyboardMarkup {
   return InlineKeyboardMarkup(listOf(list))
 }
 
-fun createShowMergedUserKeyboard(name: String): InlineKeyboardMarkup {
-  val list =
+fun createShowMergedUserKeyboard(
+    destinationDebtor: String,
+    sourceDebtor: String
+): InlineKeyboardMarkup {
+  val showDestinationDebtor =
       InlineKeyboardButton(
-          text = formatShowMergedDebtorButton(name), callback_data = formatShowMergedCallback(name))
-  return InlineKeyboardMarkup(listOf(listOf(list)))
+          text = formatShowMergedDebtorButton(destinationDebtor),
+          callback_data = formatShowMergedCallback(destinationDebtor))
+  val deleteSourceDebtor =
+      InlineKeyboardButton(
+          text = formatDeleteSourceDebtorButton(sourceDebtor),
+          callback_data = formatDeleteSourceDebtorCallback(sourceDebtor))
+  return InlineKeyboardMarkup(listOf(listOf(showDestinationDebtor, deleteSourceDebtor)))
 }
 
 fun createDeleteLastDebtorLogKeyboard(debtorId: Long, logId: Long): InlineKeyboardMarkup {

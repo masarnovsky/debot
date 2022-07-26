@@ -54,8 +54,16 @@ fun formatShowMergedDebtorButton(name: String): String {
   return SHOW_MERGED_DEBTOR_BUTTON.format(name)
 }
 
+fun formatDeleteSourceDebtorButton(name: String): String {
+  return DELETE_MERGED_DEBTOR_BUTTON.format(name)
+}
+
 fun formatShowMergedCallback(name: String): String {
   return SHOW_MERGED_DEBTOR_CALLBACK.format(name)
+}
+
+fun formatDeleteSourceDebtorCallback(name: String): String {
+  return DELETE_MERGED_DEBTOR_CALLBACK.format(name)
 }
 
 fun formatDebtorSuggestionForInlineQuery(debtor: Debtor, currency: Currency): String {
