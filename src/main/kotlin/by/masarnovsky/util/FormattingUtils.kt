@@ -81,6 +81,10 @@ fun formatCurrentCurrency(currency: Currency): String {
   return CURRENT_CURRENCY.format(currency.name)
 }
 
+fun formatSuccessfulRevert(log: Log): String {
+  return REVERT_WAS_COMPLETED.format(log.getAmountAsRawValue(), log.currency, log.comment)
+}
+
 fun formatSuccessfulAdminMergeMessage(
     chatId: Long,
     logCount: Int,

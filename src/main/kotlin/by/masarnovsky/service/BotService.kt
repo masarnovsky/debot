@@ -189,7 +189,7 @@ fun processRevertLastDebtorLog(chatId: Long, messageId: Int, text: String) {
 
       updateDebtor(debtor)
       deleteLogById(logId.toLong())
-      editMessageTextAndInlineKeyboard(chatId, messageId, REVERT_WAS_COMPLETED)
+      editMessageTextAndInlineKeyboard(chatId, messageId, formatSuccessfulRevert(log))
       showDebtorLogs(chatId, debtor.name)
     } else {
       editMessageTextAndInlineKeyboard(chatId, messageId, COMMON_ERROR)
