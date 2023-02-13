@@ -1,7 +1,5 @@
 package by.masarnovsky
 
-const val POSTGRES_URL_PATTERN =
-    "postgres:(?://(?:(?<username>[^:@]*)(?::(?<password>[^@]*))?@)?(?<addresses>(?:[a-zA-Z0-9\\-.]+|\\[[0-9a-f:]+])(?::(?:\\d+))?(?:,(?:[a-zA-Z0-9\\-.]+|\\[[0-9a-f:]+])(?::(?:\\d+))?)*)/)?(?<database>[^?&/]+)(?:[?&](?<parameters>.*))?"
 const val NEW_DEBTOR_PATTERN =
     "(?<name>[\\p{L}\\s]*) (?<amount>[0-9.,]+) (?<comment>[\\p{L}\\s-!?)(.,]*)"
 const val MERGE_PATTERN = "/merge (?<source>[\\p{L}\\s]*) (?<destination>[\\p{L}\\s]*)"

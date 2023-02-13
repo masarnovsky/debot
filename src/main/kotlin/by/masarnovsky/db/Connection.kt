@@ -1,15 +1,26 @@
 package by.masarnovsky.db
 
-import by.masarnovsky.postgresPassword
-import by.masarnovsky.postgresUrl
-import by.masarnovsky.postgresUser
+import by.masarnovsky.databasePassword
+import by.masarnovsky.databaseUrl
+import by.masarnovsky.databaseUser
+import mu.KotlinLogging
+import org.flywaydb.core.Flyway
 import org.jetbrains.exposed.sql.Database
+
+private val logger = KotlinLogging.logger {}
 
 fun connection(): Database {
   return Database.connect(
-      url = postgresUrl,
-      driver = "com.impossibl.postgres.jdbc.PGDriver",
-      user = postgresUser,
-      password = postgresPassword,
+      url = databaseUrl,
+      driver = "org.postgresql.Driver",
+      user = databaseUser,
+      password = databasePassword,
   )
+}
+
+fun flywayMigration() {
+  connection()
+  logger.info { "start flyway migration" }
+  val flyway = Flyway.configure().dataSource(databaseUrl, databaseUser, databasePassword).load()
+  flyway.migrate()
 }

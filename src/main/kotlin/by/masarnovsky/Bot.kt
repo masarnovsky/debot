@@ -1,6 +1,7 @@
 package by.masarnovsky
 
 import by.masarnovsky.command.*
+import by.masarnovsky.db.flywayMigration
 import by.masarnovsky.service.*
 import by.masarnovsky.util.*
 import com.elbekD.bot.Bot
@@ -16,17 +17,17 @@ const val BOT_TOKEN = "BOT_TOKEN"
 const val BOT_USERNAME = "BOT_USERNAME"
 const val DATABASE_URL = "DATABASE_URL"
 const val DATABASE = "DATABASE"
+const val DATABASE_USER = "DATABASE_USER"
+const val DATABASE_PASSWORD = "DATABASE_PASSWORD"
 const val OWNER_ID = "OWNER_ID"
-const val HEROKU_POSTGRESQL_GOLD_URL = "HEROKU_POSTGRESQL_GOLD_URL"
 
 lateinit var token: String
 lateinit var username: String
-lateinit var databaseUrl: String
 lateinit var database: String
 lateinit var ownerId: String
-lateinit var postgresUrl: String
-lateinit var postgresUser: String
-lateinit var postgresPassword: String
+lateinit var databaseUrl: String
+lateinit var databaseUser: String
+lateinit var databasePassword: String
 var isProd = false
 
 private val logger = KotlinLogging.logger {}
@@ -35,6 +36,7 @@ lateinit var bot: Bot
 
 fun main() {
   loadProperties()
+  flywayMigration()
   bot = Bot.createPolling(username, token)
   setBehaviour()
   bot.start()
@@ -47,10 +49,11 @@ private fun loadProperties() {
     isProd = true
     token = System.getenv()[BOT_TOKEN].toString()
     username = System.getenv()[BOT_USERNAME].toString()
-    databaseUrl = System.getenv()[DATABASE_URL].toString()
     database = System.getenv()[DATABASE].toString()
     ownerId = System.getenv()[OWNER_ID].toString()
-    postgresUrl = System.getenv()[HEROKU_POSTGRESQL_GOLD_URL].toString()
+    databaseUrl = System.getenv()[DATABASE_URL].toString()
+    databaseUser = System.getenv()[DATABASE_USER].toString()
+    databasePassword = System.getenv()[DATABASE_PASSWORD].toString()
   } else {
     logger.info { "setup test environment" }
     val properties = Properties()
@@ -59,23 +62,12 @@ private fun loadProperties() {
     properties.load(inputStream)
     token = properties.getProperty(BOT_TOKEN)
     username = properties.getProperty(BOT_USERNAME)
-    databaseUrl = properties.getProperty(DATABASE_URL)
     database = properties.getProperty(DATABASE)
     ownerId = properties.getProperty(OWNER_ID)
-    postgresUrl = properties.getProperty(HEROKU_POSTGRESQL_GOLD_URL)
+    databaseUrl = properties.getProperty(DATABASE_URL)
+    databaseUser = properties.getProperty(DATABASE_USER)
+    databasePassword = properties.getProperty(DATABASE_PASSWORD)
   }
-  setupPostgresCredentials()
-}
-
-private fun setupPostgresCredentials() {
-  val match = POSTGRES_URL_PATTERN.toRegex().find(postgresUrl)!!
-  val (username, password) = match.destructured
-  postgresUser = username
-  postgresPassword = password
-  if (postgresUrl.startsWith("postgres://")) {
-    postgresUrl = postgresUrl.replaceFirst("postgres://", "jdbc:pgsql://")
-  }
-  if (isProd) postgresUrl += "?sslMode=Require"
 }
 
 private fun setBehaviour() {
