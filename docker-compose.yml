@@ -1,0 +1,35 @@
+version: '3.7'
+services:
+  db:
+    container_name: postgresdb
+    image: postgres:latest
+    restart: always
+    env_file: ./.env
+    environment:
+      - POSTGRES_PASSWORD=$DATABASE_PASSWORD
+      - POSTGRES_USER=$DATABASE_USER
+      - POSTGRES_DB=$DATABASE
+      - POSTGRES_HOST_AUTH_METHOD=trust
+    ports:
+      - $DATABASE_DOCKER_PORT:$DATABASE_LOCAL_PORT
+    networks:
+      - debot-network
+  debot:
+    container_name: debot
+    image: debot:latest
+    restart: always
+    env_file: ./.env
+    environment:
+      - LOAD_FROM_ENV=true
+      - BOT_TOKEN=$BOT_TOKEN
+      - BOT_USERNAME=$BOT_USERNAME
+      - DATABASE=$DATABASE
+      - OWNER_ID=$OWNER_ID
+      - DATABASE_URL=jdbc:postgresql://postgresdb:$DATABASE_LOCAL_PORT/$DATABASE
+      - DATABASE_USER=$DATABASE_USER
+      - DATABASE_PASSWORD=$DATABASE_PASSWORD
+    networks:
+      - debot-network
+networks:
+  debot-network:
+    driver: bridge

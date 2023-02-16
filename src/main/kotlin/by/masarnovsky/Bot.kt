@@ -8,11 +8,12 @@ import com.elbekD.bot.Bot
 import com.elbekD.bot.types.CallbackQuery
 import com.elbekD.bot.types.InlineQuery
 import com.elbekD.bot.types.Message
+import java.io.File
 import java.io.FileInputStream
 import java.util.*
 import mu.KotlinLogging
 
-const val IS_PROD = "IS_PROD"
+const val LOAD_FROM_ENV = "LOAD_FROM_ENV"
 const val BOT_TOKEN = "BOT_TOKEN"
 const val BOT_USERNAME = "BOT_USERNAME"
 const val DATABASE_URL = "DATABASE_URL"
@@ -44,30 +45,38 @@ fun main() {
 }
 
 private fun loadProperties() {
-  if (System.getenv()[IS_PROD].toString() != "null") {
-    logger.info { "setup prod environment" }
-    isProd = true
-    token = System.getenv()[BOT_TOKEN].toString()
-    username = System.getenv()[BOT_USERNAME].toString()
-    database = System.getenv()[DATABASE].toString()
-    ownerId = System.getenv()[OWNER_ID].toString()
-    databaseUrl = System.getenv()[DATABASE_URL].toString()
-    databaseUser = System.getenv()[DATABASE_USER].toString()
-    databasePassword = System.getenv()[DATABASE_PASSWORD].toString()
+  if (System.getenv()[LOAD_FROM_ENV].toString() != "null") {
+    loadPropertiesFromEnvFile()
   } else {
-    logger.info { "setup test environment" }
-    val properties = Properties()
-    val propertiesFile = System.getProperty("user.dir") + "\\test_env.properties"
-    val inputStream = FileInputStream(propertiesFile)
-    properties.load(inputStream)
-    token = properties.getProperty(BOT_TOKEN)
-    username = properties.getProperty(BOT_USERNAME)
-    database = properties.getProperty(DATABASE)
-    ownerId = properties.getProperty(OWNER_ID)
-    databaseUrl = properties.getProperty(DATABASE_URL)
-    databaseUser = properties.getProperty(DATABASE_USER)
-    databasePassword = properties.getProperty(DATABASE_PASSWORD)
+    loadPropertiesFromPropertiesFIle()
   }
+}
+
+private fun loadPropertiesFromPropertiesFIle() {
+  logger.info { "setup environment from property file" }
+  val properties = Properties()
+  val propertiesFile = System.getProperty("user.dir") + File.separator + "environment.properties"
+  val inputStream = FileInputStream(propertiesFile)
+  properties.load(inputStream)
+  token = properties.getProperty(BOT_TOKEN)
+  username = properties.getProperty(BOT_USERNAME)
+  database = properties.getProperty(DATABASE)
+  ownerId = properties.getProperty(OWNER_ID)
+  databaseUrl = properties.getProperty(DATABASE_URL)
+  databaseUser = properties.getProperty(DATABASE_USER)
+  databasePassword = properties.getProperty(DATABASE_PASSWORD)
+}
+
+private fun loadPropertiesFromEnvFile() {
+  logger.info { "setup environment from env file" }
+  isProd = true
+  token = System.getenv()[BOT_TOKEN].toString()
+  username = System.getenv()[BOT_USERNAME].toString()
+  database = System.getenv()[DATABASE].toString()
+  ownerId = System.getenv()[OWNER_ID].toString()
+  databaseUrl = System.getenv()[DATABASE_URL].toString()
+  databaseUser = System.getenv()[DATABASE_USER].toString()
+  databasePassword = System.getenv()[DATABASE_PASSWORD].toString()
 }
 
 private fun setBehaviour() {
