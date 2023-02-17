@@ -29,7 +29,6 @@ lateinit var ownerId: String
 lateinit var databaseUrl: String
 lateinit var databaseUser: String
 lateinit var databasePassword: String
-var isProd = false
 
 private val logger = KotlinLogging.logger {}
 
@@ -69,7 +68,6 @@ private fun loadPropertiesFromPropertiesFIle() {
 
 private fun loadPropertiesFromEnvFile() {
   logger.info { "setup environment from env file" }
-  isProd = true
   token = System.getenv()[BOT_TOKEN].toString()
   username = System.getenv()[BOT_USERNAME].toString()
   database = System.getenv()[DATABASE].toString()
