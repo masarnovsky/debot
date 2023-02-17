@@ -28,6 +28,7 @@ services:
       - DATABASE_URL=jdbc:postgresql://postgresdb:$DATABASE_LOCAL_PORT/$DATABASE
       - DATABASE_USER=$DATABASE_USER
       - DATABASE_PASSWORD=$DATABASE_PASSWORD
+      - ENV=$ENV
     networks:
       - debot-network
 networks:

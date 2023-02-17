@@ -21,6 +21,7 @@ const val DATABASE = "DATABASE"
 const val DATABASE_USER = "DATABASE_USER"
 const val DATABASE_PASSWORD = "DATABASE_PASSWORD"
 const val OWNER_ID = "OWNER_ID"
+const val ENV = "ENV"
 
 lateinit var token: String
 lateinit var username: String
@@ -64,6 +65,7 @@ private fun loadPropertiesFromPropertiesFIle() {
   databaseUrl = properties.getProperty(DATABASE_URL)
   databaseUser = properties.getProperty(DATABASE_USER)
   databasePassword = properties.getProperty(DATABASE_PASSWORD)
+  logger.info { "environment: ${properties.getProperty(ENV)}" }
 }
 
 private fun loadPropertiesFromEnvFile() {
@@ -75,6 +77,7 @@ private fun loadPropertiesFromEnvFile() {
   databaseUrl = System.getenv()[DATABASE_URL].toString()
   databaseUser = System.getenv()[DATABASE_USER].toString()
   databasePassword = System.getenv()[DATABASE_PASSWORD].toString()
+  logger.info { "environment: ${System.getenv()[DATABASE_PASSWORD].toString()}" }
 }
 
 private fun setBehaviour() {
