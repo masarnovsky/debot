@@ -4,7 +4,7 @@ FROM adoptopenjdk:${VERSION}-jdk as BUILD
 
 COPY . /src
 WORKDIR /src
-RUN ./gradlew clean build
+RUN ./gradlew --no-daemon shadowJar
 
 FROM adoptopenjdk:${VERSION}-jre
 

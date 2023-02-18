@@ -17,6 +17,8 @@ services:
   debot:
     container_name: debot
     image: debot:latest
+    depends_on:
+      - db
     restart: always
     env_file: ./.env
     environment:
