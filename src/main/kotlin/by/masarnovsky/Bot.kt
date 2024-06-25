@@ -48,11 +48,11 @@ private fun loadProperties() {
   if (System.getenv()[LOAD_FROM_ENV].toString() != "null") {
     loadPropertiesFromEnvFile()
   } else {
-    loadPropertiesFromPropertiesFIle()
+    loadPropertiesFromPropertiesFile()
   }
 }
 
-private fun loadPropertiesFromPropertiesFIle() {
+private fun loadPropertiesFromPropertiesFile() {
   logger.info { "setup environment from property file" }
   val properties = Properties()
   val propertiesFile = System.getProperty("user.dir") + File.separator + "environment.properties"
@@ -77,7 +77,7 @@ private fun loadPropertiesFromEnvFile() {
   databaseUrl = System.getenv()[DATABASE_URL].toString()
   databaseUser = System.getenv()[DATABASE_USER].toString()
   databasePassword = System.getenv()[DATABASE_PASSWORD].toString()
-  logger.info { "environment: ${System.getenv()[DATABASE_PASSWORD].toString()}" }
+  logger.info { "environment: ${System.getenv()[ENV].toString()}" }
 }
 
 private fun setBehaviour() {
